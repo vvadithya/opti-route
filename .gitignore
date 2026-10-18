@@ -8,3 +8,5 @@ venv/
 
 # IDE and tool files (optional)
 .DS_Store
+# Local Pyrefly configuration
+pyrefly.toml
