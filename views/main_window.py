@@ -46,6 +46,7 @@ except ImportError:
             return func
         return decorator
 
+from .animation_controller import RouteAnimationController
 from .map_canvas import MapCanvas
 from .theme_manager import ThemeManager, ThemeMode
 
@@ -81,6 +82,7 @@ if HAS_PYQT:
                 self._init_bottom_playback_bar()
                 self._init_analytics_panel()
                 self._init_central_layout()
+                self._init_playback_controller()
                 self._init_statusbar()
 
                 # Apply initial theme stylesheet and canvas colors
@@ -281,6 +283,17 @@ if HAS_PYQT:
 
             layout.addStretch()
 
+        def _init_playback_controller(self) -> None:
+            """Connect playback controls to route animation."""
+            self.animation_controller = RouteAnimationController(
+                self.map_canvas, self.progress_bar, parent=self
+            )
+            self.play_btn.clicked.connect(self.animation_controller.play)
+            self.pause_btn.clicked.connect(self.animation_controller.pause)
+            self.step_btn.clicked.connect(self.animation_controller.step)
+            self.reset_btn.clicked.connect(self.animation_controller.reset)
+            self.animation_controller.set_speed(self.speed_slider.value())
+
         def _init_analytics_panel(self) -> None:
             """Construct integration container reserved for Meghana's convergence panel (U4)."""
             self.analytics_frame = QFrame(self)
@@ -378,6 +391,7 @@ if HAS_PYQT:
             """Update speed multiplier label."""
             speed_factor = value / 10.0
             self.speed_lbl.setText(f"{speed_factor:.1f}x")
+            self.animation_controller.set_speed(value)
 
         def _update_status_bar(self) -> None:
             """Update status bar information."""
@@ -393,6 +407,7 @@ if HAS_PYQT:
             if graph is None:
                 return
 
+            self.animation_controller.set_route(None, graph)
             self.map_canvas.set_graph(graph)
 
             if HAS_PYQT:
@@ -441,14 +456,17 @@ if HAS_PYQT:
                     result = self.controller.run_dijkstra(start_node=start_n, end_node=target_n)
 
                 if result and result.found:
+                    self.animation_controller.set_route(result, self.controller.graph)
                     self.map_canvas.draw_route(result.path, result.trajectory)
                     self.status_bar.showMessage(
                         f"{result.algorithm_name} Complete | Cost: {result.total_cost:.2f} | Time: {result.execution_time_ms:.2f}ms"
                     )
                 else:
+                    self.animation_controller.set_route(None, self.controller.graph)
                     self.map_canvas.clear_routes()
                     self.status_bar.showMessage("No feasible route found.")
             except Exception as e:
+                self.animation_controller.set_route(None, self.controller.graph)
                 self.status_bar.showMessage(f"Solver Error: {str(e)}")
 
 else:

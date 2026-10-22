@@ -7,17 +7,10 @@ supporting one-click switching between Dark Theme (#1E1E1E) and Light Theme (#FA
 """
 
 from enum import Enum
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 
-try:
-    from PyQt6.QtCore import QObject, pyqtSignal
-    from PyQt6.QtGui import QColor
-    HAS_PYQT = True
-except ImportError:
-    HAS_PYQT = False
-    # Fallback dummy class if PyQt6 is not installed in the inspection environment
-    class QObject:  # type: ignore
-        pass
+from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtGui import QColor
 
 
 class ThemeMode(str, Enum):
@@ -26,14 +19,13 @@ class ThemeMode(str, Enum):
     LIGHT = "light"
 
 
-class ThemeManager(QObject if HAS_PYQT else object):
+class ThemeManager(QObject):
     """
     Centralized Theme Manager for Opti-Route.
     Manages dual-theme state, color palettes, and QSS style sheet generation.
     """
 
-    if HAS_PYQT:
-        theme_changed = pyqtSignal(str)
+    theme_changed = pyqtSignal(str)
 
     DARK_PALETTE: Dict[str, str] = {
         # Backgrounds
@@ -118,8 +110,7 @@ class ThemeManager(QObject if HAS_PYQT else object):
     }
 
     def __init__(self, initial_mode: ThemeMode = ThemeMode.DARK):
-        if HAS_PYQT:
-            super().__init__()
+        super().__init__()
         self._current_mode: ThemeMode = initial_mode
         self._listeners: List[Callable[[ThemeMode], None]] = []
 
@@ -157,8 +148,7 @@ class ThemeManager(QObject if HAS_PYQT else object):
 
     def _notify_change(self) -> None:
         """Emit Qt signal and notify registered listener callbacks."""
-        if HAS_PYQT:
-            self.theme_changed.emit(self._current_mode.value)
+        self.theme_changed.emit(self._current_mode.value)
         for listener in self._listeners:
             listener(self._current_mode)
 
@@ -170,12 +160,9 @@ class ThemeManager(QObject if HAS_PYQT else object):
         """Get hex color string by key from active palette."""
         return self.get_palette().get(key, "#000000")
 
-    def get_qcolor(self, key: str):
+    def get_qcolor(self, key: str) -> QColor:
         """Return QColor instance for the given palette key."""
-        if not HAS_PYQT:
-            return None
-        hex_val = self.get_color(key)
-        return QColor(hex_val)
+        return QColor(self.get_color(key))
 
     def get_stylesheet(self) -> str:
         """

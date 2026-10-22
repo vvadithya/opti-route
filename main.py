@@ -30,7 +30,6 @@ if "opti_route" not in sys.modules:
 # -----------------------------------------------------------------------------
 from opti_route.models.graph import Node, RoadGraph
 from opti_route.controllers import OptiRouteController
-from opti_route.views import ThemeManager, OptiRouteMainWindow
 
 # -----------------------------------------------------------------------------
 # 3. Optional PyQt6 Availability Check
@@ -117,6 +116,9 @@ def main():
         res = controller.run_dijkstra("Depot", "Terminal")
         print(f"✓ Headless Dijkstra Test: Found={res.found}, Path={res.path}, Cost={res.total_cost:.2f}")
         return 0
+
+    # Import GUI modules only after confirming PyQt6 is available.
+    from opti_route.views import ThemeManager, OptiRouteMainWindow
 
     # 3. Launch PyQt6 Desktop Application
     app = QApplication(sys.argv)
