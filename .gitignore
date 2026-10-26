@@ -6,7 +6,9 @@ __pycache__/
 venv/
 .venv/
 
-# IDE and tool files (optional)
+# Environment variables and secrets
+.env
+
+# IDE and tool files
 .DS_Store
-# Local Pyrefly configuration
 pyrefly.toml
