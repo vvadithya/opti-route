@@ -183,22 +183,44 @@ class ThemeManager(QObject):
             border-right: 1px solid {p['panel_border']};
         }}
 
+        QScrollArea, QWidget#scroll_content {{
+            background-color: transparent;
+            border: none;
+        }}
+
+        QScrollBar:vertical {{
+            background: {p['panel_bg']};
+            width: 8px;
+            margin: 0px;
+            border: none;
+        }}
+
+        QScrollBar::handle:vertical {{
+            background: {p['panel_border']};
+            min-height: 24px;
+            border-radius: 4px;
+        }}
+
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+            height: 0px;
+        }}
+
         QFrame#card {{
             background-color: {p['card_bg']};
             border: 1px solid {p['panel_border']};
             border-radius: 8px;
-            padding: 12px;
+            padding: 4px;
         }}
 
         QGroupBox {{
             background-color: {p['card_bg']};
             border: 1px solid {p['panel_border']};
             border-radius: 6px;
-            margin-top: 18px;
-            padding-top: 14px;
+            margin-top: 12px;
+            padding-top: 10px;
             padding-left: 8px;
             padding-right: 8px;
-            padding-bottom: 8px;
+            padding-bottom: 6px;
             font-weight: 600;
             color: {p['text_primary']};
         }}
@@ -216,7 +238,8 @@ class ThemeManager(QObject):
             color: {p['text_primary']};
             border: 1px solid {p['panel_border']};
             border-radius: 6px;
-            padding: 7px 14px;
+            padding: 4px 10px;
+            min-height: 22px;
             font-weight: 500;
         }}
 
@@ -261,7 +284,8 @@ class ThemeManager(QObject):
             color: {p['text_primary']};
             border: 1px solid {p['panel_border']};
             border-radius: 5px;
-            padding: 6px 10px;
+            padding: 2px 8px;
+            min-height: 24px;
             selection-background-color: {p['accent']};
             selection-color: {p['accent_text']};
         }}
@@ -354,15 +378,34 @@ class ThemeManager(QObject):
             font-weight: 600;
         }}
 
+        QTableWidget {{
+            background-color: {p['input_bg']};
+            color: {p['text_primary']};
+            gridline-color: {p['panel_border']};
+            border: 1px solid {p['panel_border']};
+            border-radius: 4px;
+        }}
+
+        QHeaderView::section {{
+            background-color: {p['card_bg']};
+            color: {p['text_primary']};
+            padding: 4px;
+            border: 1px solid {p['panel_border']};
+            font-weight: 600;
+        }}
+
         QLabel {{
+            background-color: transparent;
             color: {p['text_primary']};
         }}
 
         QLabel#muted_label {{
+            background-color: transparent;
             color: {p['text_muted']};
         }}
 
         QLabel#heading_label {{
+            background-color: transparent;
             font-size: 15px;
             font-weight: bold;
             color: {p['text_primary']};

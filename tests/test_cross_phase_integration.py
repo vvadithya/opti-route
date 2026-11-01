@@ -137,6 +137,16 @@ class TestCrossPhaseIntegration(unittest.TestCase):
         self.assertEqual(len(win.map_canvas._route_items), 1)
         self.assertEqual(win.comp_table.rowCount(), 1)
 
+        # Drag an intermediate node on the solved Dijkstra route and verify route overlay + animation sync
+        dijkstra_path = list(win.map_canvas._active_route_path)
+        self.assertGreaterEqual(len(dijkstra_path), 2)
+        dragged_node_id = dijkstra_path[1]
+        win.map_canvas._node_items[dragged_node_id].setPos(333.0, 444.0)
+        route_poly = win.map_canvas._route_items[0].path()
+        self.assertAlmostEqual(route_poly.elementAt(1).x, 333.0, places=3)
+        self.assertAlmostEqual(route_poly.elementAt(1).y, 444.0, places=3)
+        self.assertIn((333.0, 444.0), win.animation_controller._points)
+
         # Run Simulated Annealing
         win.alg_combo.setCurrentIndex(1)
         win.iter_spin.setValue(5)

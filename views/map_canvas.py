@@ -101,6 +101,7 @@ class MapCanvas(QGraphicsView):
 
     node_selected = pyqtSignal(str)
     canvas_clicked = pyqtSignal(float, float)
+    node_moved = pyqtSignal(str, float, float)
 
     def __init__(self, theme_manager: Optional[ThemeManager] = None, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -128,6 +129,9 @@ class MapCanvas(QGraphicsView):
         self._edge_pairs: List[Tuple[str, str]] = []
         self._label_items: List[QGraphicsSimpleTextItem] = []
         self._route_items: List[QGraphicsPathItem] = []
+        self._active_route_path: List[str] = []
+        self._active_route_color: Optional[str] = None
+        self._active_multi_routes: Dict[str, List[str]] = {}
         self._vehicle_item: Optional[QGraphicsEllipseItem] = None
         self._suppress_drag_sync: bool = False
 
@@ -202,6 +206,9 @@ class MapCanvas(QGraphicsView):
         self._edge_pairs.clear()
         self._label_items.clear()
         self._route_items.clear()
+        self._active_route_path.clear()
+        self._active_route_color = None
+        self._active_multi_routes.clear()
         self._vehicle_item = None
 
         if graph is None or graph.node_count() == 0:
@@ -318,6 +325,43 @@ class MapCanvas(QGraphicsView):
                     mid_y = (u_node.y + v_node.y) / 2.0
                     self._label_items[idx].setPos(mid_x + 3, mid_y + 3)
 
+        # Dynamically update active route overlays so solved paths follow dragged nodes
+        self._refresh_active_routes()
+        self.node_moved.emit(node_id, new_x, new_y)
+
+    def _build_painter_path_for_nodes(self, path: List[str]) -> Optional[QPainterPath]:
+        """Build a QPainterPath connecting current live coordinates of the given node IDs."""
+        if self._graph_ref is None or not path or len(path) < 2:
+            return None
+        first_node = self._graph_ref.get_node(path[0])
+        if not first_node:
+            return None
+        painter_path = QPainterPath()
+        painter_path.moveTo(first_node.x, first_node.y)
+        for nid in path[1:]:
+            node = self._graph_ref.get_node(nid)
+            if node:
+                painter_path.lineTo(node.x, node.y)
+        return painter_path
+
+    def _refresh_active_routes(self) -> None:
+        """Update existing route QGraphicsPathItems in-place using live node positions."""
+        if self._graph_ref is None or not self._route_items:
+            return
+        if self._active_multi_routes:
+            valid_paths = [
+                r_path for r_path in self._active_multi_routes.values() if r_path and len(r_path) >= 2
+            ]
+            for idx, r_path in enumerate(valid_paths):
+                if idx < len(self._route_items):
+                    updated_path = self._build_painter_path_for_nodes(r_path)
+                    if updated_path is not None:
+                        self._route_items[idx].setPath(updated_path)
+        elif self._active_route_path and len(self._active_route_path) >= 2:
+            updated_path = self._build_painter_path_for_nodes(self._active_route_path)
+            if updated_path is not None and len(self._route_items) > 0:
+                self._route_items[0].setPath(updated_path)
+
     # -------------------------------------------------------------------------
     # Route Overlays (SRS F9)
     # -------------------------------------------------------------------------
@@ -327,6 +371,9 @@ class MapCanvas(QGraphicsView):
         for item in self._route_items:
             self._scene.removeItem(item)
         self._route_items.clear()
+        self._active_route_path.clear()
+        self._active_route_color = None
+        self._active_multi_routes.clear()
 
     def draw_route(
         self,
@@ -336,32 +383,27 @@ class MapCanvas(QGraphicsView):
     ) -> None:
         """
         Render a computed route path overlay (SRS F9).
-        If fine-grained trajectory points are available, renders smooth interpolated curve.
+        Uses live node coordinates from the graph when path nodes exist so that
+        dragging nodes smoothly updates the rendered route path in real time.
         """
         if self._graph_ref is None:
             return
 
         self.clear_routes()
+        self._active_route_path = list(path) if path else []
+        self._active_route_color = color_override
 
-        if trajectory and len(trajectory) >= 2:
-            # Draw using fine-grained trajectory points
+        painter_path: Optional[QPainterPath] = None
+        if path and len(path) >= 2:
+            painter_path = self._build_painter_path_for_nodes(path)
+
+        if painter_path is None and trajectory and len(trajectory) >= 2:
             painter_path = QPainterPath()
             painter_path.moveTo(trajectory[0][0], trajectory[0][1])
             for pt in trajectory[1:]:
                 painter_path.lineTo(pt[0], pt[1])
-        elif path and len(path) >= 2:
-            # Fallback to straight node-to-node line segments
-            painter_path = QPainterPath()
-            first_node = self._graph_ref.get_node(path[0])
-            if not first_node:
-                return
-            painter_path.moveTo(first_node.x, first_node.y)
 
-            for nid in path[1:]:
-                node = self._graph_ref.get_node(nid)
-                if node:
-                    painter_path.lineTo(node.x, node.y)
-        else:
+        if painter_path is None:
             return
 
         route_color = color_override or self.theme_manager.get_color("route_line")
@@ -383,19 +425,14 @@ class MapCanvas(QGraphicsView):
         if self._graph_ref is None or not routes:
             return
         self.clear_routes()
+        self._active_multi_routes = {k: list(v) for k, v in routes.items()}
         palette_colors = ["#10B981", "#00E5FF", "#F59E0B", "#A855F7", "#F43F5E"]
         for idx, (veh_id, r_path) in enumerate(routes.items()):
             if not r_path or len(r_path) < 2:
                 continue
-            first_node = self._graph_ref.get_node(r_path[0])
-            if not first_node:
+            painter_path = self._build_painter_path_for_nodes(r_path)
+            if painter_path is None:
                 continue
-            painter_path = QPainterPath()
-            painter_path.moveTo(first_node.x, first_node.y)
-            for nid in r_path[1:]:
-                node = self._graph_ref.get_node(nid)
-                if node:
-                    painter_path.lineTo(node.x, node.y)
             color_hex = palette_colors[idx % len(palette_colors)]
             pen = QPen(
                 QColor(color_hex),

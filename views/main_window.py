@@ -160,7 +160,11 @@ if HAS_PYQT:
             if not self._points:
                 painter.setPen(QColor(p["text_muted"]))
                 painter.setFont(QFont("Helvetica", 9))
-                painter.drawText(plot_rect, Qt.AlignmentFlag.AlignCenter, "Run Simulated Annealing to plot convergence")
+                painter.drawText(
+                    rect.adjusted(14, 24, -14, -10),
+                    int(Qt.AlignmentFlag.AlignCenter) | int(Qt.TextFlag.TextWordWrap),
+                    "Run Simulated Annealing to plot convergence",
+                )
                 return
 
             # Axes
@@ -215,6 +219,7 @@ if HAS_PYQT:
             self.theme_manager = theme_manager if theme_manager is not None else ThemeManager()
             self._worker_thread: Optional[SolverWorkerThread] = None
             self._mpl_canvas = None
+            self._initial_fit_done: bool = False
 
             if HAS_PYQT:
                 self.setWindowTitle("Opti-Route: Adaptive Vehicle Routing & Task Dispatch (Group-15)")
@@ -299,26 +304,37 @@ if HAS_PYQT:
             """Construct left sidebar control panel."""
             self.sidebar_frame = QFrame(self)
             self.sidebar_frame.setObjectName("control_panel")
-            self.sidebar_frame.setFixedWidth(310)
+            self.sidebar_frame.setFixedWidth(330)
 
-            layout = QVBoxLayout(self.sidebar_frame)
-            layout.setContentsMargins(12, 12, 12, 12)
-            layout.setSpacing(10)
+            outer_layout = QVBoxLayout(self.sidebar_frame)
+            outer_layout.setContentsMargins(0, 0, 0, 0)
+            outer_layout.setSpacing(0)
+
+            scroll_area = QScrollArea(self.sidebar_frame)
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+            scroll_content = QWidget(scroll_area)
+            scroll_content.setObjectName("scroll_content")
+            layout = QVBoxLayout(scroll_content)
+            layout.setContentsMargins(10, 10, 10, 10)
+            layout.setSpacing(6)
 
             # Header
-            title = QLabel("Routing Controls", self.sidebar_frame)
+            title = QLabel("Routing Controls", scroll_content)
             title.setObjectName("heading_label")
             layout.addWidget(title)
 
-            subtitle = QLabel("Strategy & Network Management", self.sidebar_frame)
+            subtitle = QLabel("Strategy & Network Management", scroll_content)
             subtitle.setObjectName("muted_label")
             layout.addWidget(subtitle)
 
             # 1. Algorithm Selection Group
-            alg_group = QGroupBox("Optimization Strategy", self.sidebar_frame)
+            alg_group = QGroupBox("Optimization Strategy", scroll_content)
             alg_layout = QVBoxLayout(alg_group)
 
             self.alg_combo = QComboBox(alg_group)
+            self.alg_combo.setMinimumHeight(28)
             self.alg_combo.addItems([
                 "Dijkstra Shortest Path",
                 "Simulated Annealing (VRP/TSP)",
@@ -328,31 +344,37 @@ if HAS_PYQT:
             layout.addWidget(alg_group)
 
             # 2. Location Selection Group
-            loc_group = QGroupBox("Locations", self.sidebar_frame)
+            loc_group = QGroupBox("Locations", scroll_content)
             loc_layout = QGridLayout(loc_group)
+            loc_layout.setVerticalSpacing(8)
 
             loc_layout.addWidget(QLabel("Start Node:"), 0, 0)
             self.start_node_combo = QComboBox(loc_group)
+            self.start_node_combo.setMinimumHeight(28)
             loc_layout.addWidget(self.start_node_combo, 0, 1)
 
             loc_layout.addWidget(QLabel("Target Node:"), 1, 0)
             self.target_node_combo = QComboBox(loc_group)
+            self.target_node_combo.setMinimumHeight(28)
             loc_layout.addWidget(self.target_node_combo, 1, 1)
 
             layout.addWidget(loc_group)
 
             # 3. Parameters Group (Simulated Annealing Hyper-parameters - SRS F7, F8)
-            self.params_group = QGroupBox("SA Hyper-parameters", self.sidebar_frame)
+            self.params_group = QGroupBox("SA Hyper-parameters", scroll_content)
             params_layout = QGridLayout(self.params_group)
+            params_layout.setVerticalSpacing(5)
 
             params_layout.addWidget(QLabel("Initial Temp:"), 0, 0)
             self.init_temp_spin = QDoubleSpinBox(self.params_group)
+            self.init_temp_spin.setMinimumHeight(28)
             self.init_temp_spin.setRange(1.0, 10000.0)
             self.init_temp_spin.setValue(1000.0)
             params_layout.addWidget(self.init_temp_spin, 0, 1)
 
             params_layout.addWidget(QLabel("Cooling Rate:"), 1, 0)
             self.cooling_spin = QDoubleSpinBox(self.params_group)
+            self.cooling_spin.setMinimumHeight(28)
             self.cooling_spin.setRange(0.01, 0.99)
             self.cooling_spin.setSingleStep(0.01)
             self.cooling_spin.setValue(0.95)
@@ -360,6 +382,7 @@ if HAS_PYQT:
 
             params_layout.addWidget(QLabel("Min Temp:"), 2, 0)
             self.min_temp_spin = QDoubleSpinBox(self.params_group)
+            self.min_temp_spin.setMinimumHeight(28)
             self.min_temp_spin.setDecimals(4)
             self.min_temp_spin.setRange(0.0001, 100.0)
             self.min_temp_spin.setValue(0.01)
@@ -367,12 +390,14 @@ if HAS_PYQT:
 
             params_layout.addWidget(QLabel("Iterations:"), 3, 0)
             self.iter_spin = QSpinBox(self.params_group)
+            self.iter_spin.setMinimumHeight(28)
             self.iter_spin.setRange(1, 1000)
             self.iter_spin.setValue(50)
             params_layout.addWidget(self.iter_spin, 3, 1)
 
             params_layout.addWidget(QLabel("Mutation Op:"), 4, 0)
             self.mutation_combo = QComboBox(self.params_group)
+            self.mutation_combo.setMinimumHeight(28)
             self.mutation_combo.addItems(["random", "2-opt", "swap", "insertion"])
             params_layout.addWidget(self.mutation_combo, 4, 1)
 
@@ -381,19 +406,22 @@ if HAS_PYQT:
 
             # 4. Execution Action Buttons (SRS U1 Basic & Alternative Flow)
             exec_row = QHBoxLayout()
-            self.run_btn = QPushButton("Calculate Route", self.sidebar_frame)
+            self.run_btn = QPushButton("Calculate Route", scroll_content)
             self.run_btn.setObjectName("primary_button")
+            self.run_btn.setMinimumHeight(32)
             self.run_btn.clicked.connect(self.on_run_solver)
             exec_row.addWidget(self.run_btn, stretch=3)
 
-            self.stop_btn = QPushButton("⏹ Stop", self.sidebar_frame)
+            self.stop_btn = QPushButton("⏹ Stop", scroll_content)
+            self.stop_btn.setMinimumHeight(32)
             self.stop_btn.clicked.connect(self.on_stop_solver)
             exec_row.addWidget(self.stop_btn, stretch=1)
             layout.addLayout(exec_row)
 
             # 5. Interactive Map & Job Editor Group (SRS F2, F3, F4 & Use Case U2)
-            edit_group = QGroupBox("Graph, Fleet & Job Editor", self.sidebar_frame)
+            edit_group = QGroupBox("Graph, Fleet && Job Editor", scroll_content)
             edit_grid = QGridLayout(edit_group)
+            edit_grid.setSpacing(6)
 
             self.add_node_btn = QPushButton("+ Node", edit_group)
             self.add_node_btn.clicked.connect(self.on_add_node_dialog)
@@ -418,10 +446,11 @@ if HAS_PYQT:
             layout.addWidget(edit_group)
 
             # 6. Network, Fleet & Job Summary Card
-            summary_card = QFrame(self.sidebar_frame)
+            summary_card = QFrame(scroll_content)
             summary_card.setObjectName("card")
             summary_layout = QVBoxLayout(summary_card)
             summary_layout.setContentsMargins(8, 8, 8, 8)
+            summary_layout.setSpacing(4)
 
             self.summary_title = QLabel("Network & Fleet Topology", summary_card)
             self.summary_title.setObjectName("heading_label")
@@ -442,31 +471,38 @@ if HAS_PYQT:
             layout.addWidget(summary_card)
             layout.addStretch()
 
+            scroll_area.setWidget(scroll_content)
+            outer_layout.addWidget(scroll_area)
+
         def _init_bottom_playback_bar(self) -> None:
             """Construct bottom animation playback bar (SRS F10)."""
             self.playback_frame = QFrame(self)
             self.playback_frame.setObjectName("card")
-            self.playback_frame.setFixedHeight(64)
+            self.playback_frame.setFixedHeight(58)
 
             layout = QHBoxLayout(self.playback_frame)
-            layout.setContentsMargins(14, 8, 14, 8)
+            layout.setContentsMargins(12, 6, 12, 6)
             layout.setSpacing(12)
 
             # Playback control buttons
             self.play_btn = QPushButton("▶ Play", self.playback_frame)
-            self.play_btn.setFixedWidth(80)
+            self.play_btn.setFixedWidth(88)
+            self.play_btn.setMinimumHeight(30)
             layout.addWidget(self.play_btn)
 
             self.pause_btn = QPushButton("⏸ Pause", self.playback_frame)
-            self.pause_btn.setFixedWidth(80)
+            self.pause_btn.setFixedWidth(88)
+            self.pause_btn.setMinimumHeight(30)
             layout.addWidget(self.pause_btn)
 
             self.step_btn = QPushButton("⏭ Step", self.playback_frame)
-            self.step_btn.setFixedWidth(80)
+            self.step_btn.setFixedWidth(88)
+            self.step_btn.setMinimumHeight(30)
             layout.addWidget(self.step_btn)
 
             self.reset_btn = QPushButton("↺ Reset", self.playback_frame)
-            self.reset_btn.setFixedWidth(80)
+            self.reset_btn.setFixedWidth(88)
+            self.reset_btn.setMinimumHeight(30)
             layout.addWidget(self.reset_btn)
 
             # Traversal Progress
@@ -507,7 +543,7 @@ if HAS_PYQT:
             """Construct Phase 4 Real-Time Benchmarking & Convergence Analytics Panel (SRS F12-F15, U4)."""
             self.analytics_frame = QFrame(self)
             self.analytics_frame.setObjectName("control_panel")
-            self.analytics_frame.setFixedWidth(340)
+            self.analytics_frame.setFixedWidth(360)
 
             layout = QVBoxLayout(self.analytics_frame)
             layout.setContentsMargins(12, 12, 12, 12)
@@ -563,6 +599,9 @@ if HAS_PYQT:
             header = self.comp_table.horizontalHeader()
             if header is not None:
                 header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            v_header = self.comp_table.verticalHeader()
+            if v_header is not None:
+                v_header.setVisible(False)
             self.comp_table.setMaximumHeight(150)
             comp_layout.addWidget(self.comp_table)
             layout.addWidget(comp_group)
@@ -606,6 +645,13 @@ if HAS_PYQT:
             self.status_bar = QStatusBar(self)
             self.setStatusBar(self.status_bar)
             self._update_status_bar()
+
+        def showEvent(self, event) -> None:
+            """Fit map to view once the window and canvas viewport have received their initial layout size."""
+            super().showEvent(event)
+            if not self._initial_fit_done:
+                self._initial_fit_done = True
+                self.map_canvas.fit_to_view()
 
         # -------------------------------------------------------------------------
         # Event Handlers & State Updates

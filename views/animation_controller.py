@@ -32,6 +32,10 @@ class RouteAnimationController(QObject):
         self._points: List[Tuple[float, float]] = []
         self._index = -1
         self._interval_ms = self._INTERVAL_MS_AT_1X
+        self._result: Optional[OptimizationResult] = None
+        self._graph: Optional[RoadGraph] = None
+        if hasattr(self._canvas, "node_moved"):
+            self._canvas.node_moved.connect(self._on_node_moved)
 
     def set_route(
         self,
@@ -40,7 +44,22 @@ class RouteAnimationController(QObject):
     ) -> None:
         """Replace the playback route and reset the current animation."""
         self.reset()
+        self._result = result
+        self._graph = graph
         self._points = self._build_points(result, graph)
+
+    def _on_node_moved(self, node_id: str, x: float, y: float) -> None:
+        """Recompute interpolated trajectory from live node coordinates when a node is dragged."""
+        if self._result is None or self._graph is None or not self._result.path:
+            return
+        if node_id not in self._result.path:
+            return
+        self._points = self._build_points(
+            self._result, self._graph, ignore_trajectory=True
+        )
+        self._result.trajectory = list(self._points)
+        if 0 <= self._index < len(self._points):
+            self._show_current_point()
 
     def set_speed(self, slider_value: int) -> None:
         """Update playback speed from the 0.5x-5.0x UI slider."""
@@ -111,6 +130,7 @@ class RouteAnimationController(QObject):
         cls,
         result: Optional[OptimizationResult],
         graph: Optional[RoadGraph],
+        ignore_trajectory: bool = False,
     ) -> List[Tuple[float, float]]:
         if result is None or not result.found or not result.path or graph is None:
             return []
@@ -122,7 +142,7 @@ class RouteAnimationController(QObject):
                 return []
             nodes.append(point)
 
-        trajectory = cls._validated_points(result.trajectory)
+        trajectory = None if ignore_trajectory else cls._validated_points(result.trajectory)
         if len(nodes) == 1:
             if trajectory and len(trajectory) == 1 and cls._same_point(trajectory[0], nodes[0]):
                 return trajectory

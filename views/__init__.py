@@ -37,6 +37,7 @@ def ensure_qt_bridge() -> bool:
         "PenJoinStyle",
         "AspectRatioMode",
         "AlignmentFlag",
+        "TextFlag",
     ):
         if not hasattr(_Qt, enum_alias):
             setattr(_Qt, enum_alias, _Qt)
