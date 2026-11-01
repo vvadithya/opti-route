@@ -131,8 +131,8 @@ class TestCrossPhaseIntegration(unittest.TestCase):
         tm = ThemeManager()
         win = OptiRouteMainWindow(controller=controller, theme_manager=tm)
 
-        # Run Dijkstra
-        win.alg_combo.setCurrentIndex(0)
+        # Run Dijkstra (Unoptimized FIFO Baseline at index 3)
+        win.alg_combo.setCurrentIndex(3)
         win.on_run_solver()
         self.assertEqual(len(win.map_canvas._route_items), 1)
         self.assertEqual(win.comp_table.rowCount(), 1)
@@ -147,8 +147,8 @@ class TestCrossPhaseIntegration(unittest.TestCase):
         self.assertAlmostEqual(route_poly.elementAt(1).y, 444.0, places=3)
         self.assertIn((333.0, 444.0), win.animation_controller._points)
 
-        # Run Simulated Annealing
-        win.alg_combo.setCurrentIndex(1)
+        # Run Simulated Annealing (VRP Optimizer at index 0)
+        win.alg_combo.setCurrentIndex(0)
         win.iter_spin.setValue(5)
         win.on_run_solver()
         self.assertEqual(len(win.map_canvas._route_items), 1)
@@ -158,16 +158,16 @@ class TestCrossPhaseIntegration(unittest.TestCase):
         win.on_toggle_theme()
         self.assertEqual(tm.current_mode, ThemeMode.LIGHT)
 
-        # Test Bellman-Ford, TLBO, and Genetic Algorithm from GUI
-        win.alg_combo.setCurrentIndex(2)  # Bellman-Ford
+        # Test Bellman-Ford (index 4), TLBO (index 1), and Genetic Algorithm (index 2) from GUI
+        win.alg_combo.setCurrentIndex(4)  # Bellman-Ford (Unoptimized FIFO Baseline)
         win.on_run_solver()
         self.assertEqual(win.comp_table.rowCount(), 3)
 
-        win.alg_combo.setCurrentIndex(3)  # TLBO
+        win.alg_combo.setCurrentIndex(1)  # TLBO (Teaching-Learning VRP)
         win.on_run_solver()
         self.assertEqual(win.comp_table.rowCount(), 4)
 
-        win.alg_combo.setCurrentIndex(4)  # Genetic Algorithm
+        win.alg_combo.setCurrentIndex(2)  # Genetic Algorithm (GA VRP)
         win.on_run_solver()
         self.assertEqual(win.comp_table.rowCount(), 5)
 

@@ -1,0 +1,1327 @@
+{
+  "version": 1,
+  "distance_unit": "km",
+  "nodes": [
+    {
+      "id": "C1-1",
+      "x": 60.0,
+      "y": 55.0,
+      "name": "City 1-1",
+      "type": "junction"
+    },
+    {
+      "id": "C1-2",
+      "x": 148.0,
+      "y": 65.0,
+      "name": "City 1-2",
+      "type": "junction"
+    },
+    {
+      "id": "C1-3",
+      "x": 236.0,
+      "y": 55.0,
+      "name": "City 1-3",
+      "type": "junction"
+    },
+    {
+      "id": "C1-4",
+      "x": 324.0,
+      "y": 65.0,
+      "name": "City 1-4",
+      "type": "junction"
+    },
+    {
+      "id": "C1-5",
+      "x": 412.0,
+      "y": 55.0,
+      "name": "City 1-5",
+      "type": "junction"
+    },
+    {
+      "id": "C1-6",
+      "x": 500.0,
+      "y": 65.0,
+      "name": "City 1-6",
+      "type": "junction"
+    },
+    {
+      "id": "C1-7",
+      "x": 588.0,
+      "y": 55.0,
+      "name": "City 1-7",
+      "type": "junction"
+    },
+    {
+      "id": "C1-8",
+      "x": 676.0,
+      "y": 65.0,
+      "name": "City 1-8",
+      "type": "junction"
+    },
+    {
+      "id": "C1-9",
+      "x": 764.0,
+      "y": 55.0,
+      "name": "City 1-9",
+      "type": "junction"
+    },
+    {
+      "id": "C1-10",
+      "x": 852.0,
+      "y": 65.0,
+      "name": "City 1-10",
+      "type": "junction"
+    },
+    {
+      "id": "C2-1",
+      "x": 74.0,
+      "y": 137.0,
+      "name": "City 2-1",
+      "type": "junction"
+    },
+    {
+      "id": "C2-2",
+      "x": 162.0,
+      "y": 147.0,
+      "name": "City 2-2",
+      "type": "junction"
+    },
+    {
+      "id": "RegHub-23",
+      "x": 250.0,
+      "y": 137.0,
+      "name": "Regional Hub 2-3",
+      "type": "hub"
+    },
+    {
+      "id": "C2-4",
+      "x": 338.0,
+      "y": 147.0,
+      "name": "City 2-4",
+      "type": "junction"
+    },
+    {
+      "id": "C2-5",
+      "x": 426.0,
+      "y": 137.0,
+      "name": "City 2-5",
+      "type": "junction"
+    },
+    {
+      "id": "RegHub-26",
+      "x": 514.0,
+      "y": 147.0,
+      "name": "Regional Hub 2-6",
+      "type": "hub"
+    },
+    {
+      "id": "C2-7",
+      "x": 602.0,
+      "y": 137.0,
+      "name": "City 2-7",
+      "type": "junction"
+    },
+    {
+      "id": "RegHub-28",
+      "x": 690.0,
+      "y": 147.0,
+      "name": "Regional Hub 2-8",
+      "type": "hub"
+    },
+    {
+      "id": "C2-9",
+      "x": 778.0,
+      "y": 137.0,
+      "name": "City 2-9",
+      "type": "junction"
+    },
+    {
+      "id": "C2-10",
+      "x": 866.0,
+      "y": 147.0,
+      "name": "City 2-10",
+      "type": "junction"
+    },
+    {
+      "id": "Depot",
+      "x": 60.0,
+      "y": 219.0,
+      "name": "Western National Hub",
+      "type": "depot"
+    },
+    {
+      "id": "C3-2",
+      "x": 148.0,
+      "y": 229.0,
+      "name": "City 3-2",
+      "type": "junction"
+    },
+    {
+      "id": "C3-3",
+      "x": 236.0,
+      "y": 219.0,
+      "name": "City 3-3",
+      "type": "junction"
+    },
+    {
+      "id": "C3-4",
+      "x": 324.0,
+      "y": 229.0,
+      "name": "City 3-4",
+      "type": "junction"
+    },
+    {
+      "id": "C3-5",
+      "x": 412.0,
+      "y": 219.0,
+      "name": "City 3-5",
+      "type": "junction"
+    },
+    {
+      "id": "C3-6",
+      "x": 500.0,
+      "y": 229.0,
+      "name": "City 3-6",
+      "type": "junction"
+    },
+    {
+      "id": "C3-7",
+      "x": 588.0,
+      "y": 219.0,
+      "name": "City 3-7",
+      "type": "junction"
+    },
+    {
+      "id": "C3-8",
+      "x": 676.0,
+      "y": 229.0,
+      "name": "City 3-8",
+      "type": "junction"
+    },
+    {
+      "id": "C3-9",
+      "x": 764.0,
+      "y": 219.0,
+      "name": "City 3-9",
+      "type": "junction"
+    },
+    {
+      "id": "C3-10",
+      "x": 852.0,
+      "y": 229.0,
+      "name": "City 3-10",
+      "type": "junction"
+    },
+    {
+      "id": "C4-1",
+      "x": 74.0,
+      "y": 301.0,
+      "name": "City 4-1",
+      "type": "junction"
+    },
+    {
+      "id": "C4-2",
+      "x": 162.0,
+      "y": 311.0,
+      "name": "City 4-2",
+      "type": "junction"
+    },
+    {
+      "id": "C4-3",
+      "x": 250.0,
+      "y": 301.0,
+      "name": "City 4-3",
+      "type": "junction"
+    },
+    {
+      "id": "C4-4",
+      "x": 338.0,
+      "y": 311.0,
+      "name": "City 4-4",
+      "type": "junction"
+    },
+    {
+      "id": "C4-5",
+      "x": 426.0,
+      "y": 301.0,
+      "name": "City 4-5",
+      "type": "junction"
+    },
+    {
+      "id": "C4-6",
+      "x": 514.0,
+      "y": 311.0,
+      "name": "City 4-6",
+      "type": "junction"
+    },
+    {
+      "id": "C4-7",
+      "x": 602.0,
+      "y": 301.0,
+      "name": "City 4-7",
+      "type": "junction"
+    },
+    {
+      "id": "C4-8",
+      "x": 690.0,
+      "y": 311.0,
+      "name": "City 4-8",
+      "type": "junction"
+    },
+    {
+      "id": "C4-9",
+      "x": 778.0,
+      "y": 301.0,
+      "name": "City 4-9",
+      "type": "junction"
+    },
+    {
+      "id": "Terminal",
+      "x": 866.0,
+      "y": 311.0,
+      "name": "Eastern Seaboard Terminal",
+      "type": "hub"
+    },
+    {
+      "id": "C5-1",
+      "x": 60.0,
+      "y": 383.0,
+      "name": "City 5-1",
+      "type": "junction"
+    },
+    {
+      "id": "C5-2",
+      "x": 148.0,
+      "y": 393.0,
+      "name": "City 5-2",
+      "type": "junction"
+    },
+    {
+      "id": "RegHub-53",
+      "x": 236.0,
+      "y": 383.0,
+      "name": "Regional Hub 5-3",
+      "type": "hub"
+    },
+    {
+      "id": "C5-4",
+      "x": 324.0,
+      "y": 393.0,
+      "name": "City 5-4",
+      "type": "junction"
+    },
+    {
+      "id": "C5-5",
+      "x": 412.0,
+      "y": 383.0,
+      "name": "City 5-5",
+      "type": "junction"
+    },
+    {
+      "id": "RegHub-56",
+      "x": 500.0,
+      "y": 393.0,
+      "name": "Regional Hub 5-6",
+      "type": "hub"
+    },
+    {
+      "id": "C5-7",
+      "x": 588.0,
+      "y": 383.0,
+      "name": "City 5-7",
+      "type": "junction"
+    },
+    {
+      "id": "RegHub-58",
+      "x": 676.0,
+      "y": 393.0,
+      "name": "Regional Hub 5-8",
+      "type": "hub"
+    },
+    {
+      "id": "C5-9",
+      "x": 764.0,
+      "y": 383.0,
+      "name": "City 5-9",
+      "type": "junction"
+    },
+    {
+      "id": "C5-10",
+      "x": 852.0,
+      "y": 393.0,
+      "name": "City 5-10",
+      "type": "junction"
+    },
+    {
+      "id": "C6-1",
+      "x": 74.0,
+      "y": 465.0,
+      "name": "City 6-1",
+      "type": "junction"
+    },
+    {
+      "id": "C6-2",
+      "x": 162.0,
+      "y": 475.0,
+      "name": "City 6-2",
+      "type": "junction"
+    },
+    {
+      "id": "C6-3",
+      "x": 250.0,
+      "y": 465.0,
+      "name": "City 6-3",
+      "type": "junction"
+    },
+    {
+      "id": "C6-4",
+      "x": 338.0,
+      "y": 475.0,
+      "name": "City 6-4",
+      "type": "junction"
+    },
+    {
+      "id": "C6-5",
+      "x": 426.0,
+      "y": 465.0,
+      "name": "City 6-5",
+      "type": "junction"
+    },
+    {
+      "id": "C6-6",
+      "x": 514.0,
+      "y": 475.0,
+      "name": "City 6-6",
+      "type": "junction"
+    },
+    {
+      "id": "C6-7",
+      "x": 602.0,
+      "y": 465.0,
+      "name": "City 6-7",
+      "type": "junction"
+    },
+    {
+      "id": "C6-8",
+      "x": 690.0,
+      "y": 475.0,
+      "name": "City 6-8",
+      "type": "junction"
+    },
+    {
+      "id": "C6-9",
+      "x": 778.0,
+      "y": 465.0,
+      "name": "City 6-9",
+      "type": "junction"
+    },
+    {
+      "id": "C6-10",
+      "x": 866.0,
+      "y": 475.0,
+      "name": "City 6-10",
+      "type": "junction"
+    }
+  ],
+  "edges": [
+    {
+      "from": "C1-1",
+      "to": "C1-2",
+      "weight": 8.0,
+      "directed": false
+    },
+    {
+      "from": "C1-1",
+      "to": "C2-1",
+      "weight": 7.5,
+      "directed": false
+    },
+    {
+      "from": "C1-1",
+      "to": "C2-2",
+      "weight": 11.0,
+      "directed": false
+    },
+    {
+      "from": "C1-2",
+      "to": "C1-3",
+      "weight": 11.9,
+      "directed": false
+    },
+    {
+      "from": "C1-2",
+      "to": "C2-2",
+      "weight": 7.5,
+      "directed": false
+    },
+    {
+      "from": "C1-3",
+      "to": "C1-4",
+      "weight": 15.8,
+      "directed": false
+    },
+    {
+      "from": "C1-3",
+      "to": "RegHub-23",
+      "weight": 7.5,
+      "directed": false
+    },
+    {
+      "from": "C1-3",
+      "to": "C2-4",
+      "weight": 14.0,
+      "directed": false
+    },
+    {
+      "from": "C1-4",
+      "to": "C1-5",
+      "weight": 9.3,
+      "directed": false
+    },
+    {
+      "from": "C1-4",
+      "to": "C2-4",
+      "weight": 7.5,
+      "directed": false
+    },
+    {
+      "from": "C1-5",
+      "to": "C1-6",
+      "weight": 13.2,
+      "directed": false
+    },
+    {
+      "from": "C1-5",
+      "to": "C2-5",
+      "weight": 7.5,
+      "directed": false
+    },
+    {
+      "from": "C1-5",
+      "to": "RegHub-26",
+      "weight": 17.0,
+      "directed": false
+    },
+    {
+      "from": "C1-6",
+      "to": "C1-7",
+      "weight": 17.1,
+      "directed": false
+    },
+    {
+      "from": "C1-6",
+      "to": "RegHub-26",
+      "weight": 7.5,
+      "directed": false
+    },
+    {
+      "from": "C1-7",
+      "to": "C1-8",
+      "weight": 10.6,
+      "directed": false
+    },
+    {
+      "from": "C1-7",
+      "to": "C2-7",
+      "weight": 7.5,
+      "directed": false
+    },
+    {
+      "from": "C1-7",
+      "to": "RegHub-28",
+      "weight": 11.0,
+      "directed": false
+    },
+    {
+      "from": "C1-8",
+      "to": "C1-9",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C1-8",
+      "to": "RegHub-28",
+      "weight": 7.5,
+      "directed": false
+    },
+    {
+      "from": "C1-9",
+      "to": "C1-10",
+      "weight": 8.0,
+      "directed": false
+    },
+    {
+      "from": "C1-9",
+      "to": "C2-9",
+      "weight": 7.5,
+      "directed": false
+    },
+    {
+      "from": "C1-9",
+      "to": "C2-10",
+      "weight": 14.0,
+      "directed": false
+    },
+    {
+      "from": "C1-10",
+      "to": "C2-10",
+      "weight": 7.5,
+      "directed": false
+    },
+    {
+      "from": "C2-1",
+      "to": "C2-2",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C2-1",
+      "to": "Depot",
+      "weight": 11.7,
+      "directed": false
+    },
+    {
+      "from": "C2-2",
+      "to": "RegHub-23",
+      "weight": 8.0,
+      "directed": false
+    },
+    {
+      "from": "C2-2",
+      "to": "C3-2",
+      "weight": 11.7,
+      "directed": false
+    },
+    {
+      "from": "C2-2",
+      "to": "C3-3",
+      "weight": 14.0,
+      "directed": false
+    },
+    {
+      "from": "RegHub-23",
+      "to": "C2-4",
+      "weight": 11.9,
+      "directed": false
+    },
+    {
+      "from": "RegHub-23",
+      "to": "C3-3",
+      "weight": 11.7,
+      "directed": false
+    },
+    {
+      "from": "C2-4",
+      "to": "C2-5",
+      "weight": 15.8,
+      "directed": false
+    },
+    {
+      "from": "C2-4",
+      "to": "C3-4",
+      "weight": 11.7,
+      "directed": false
+    },
+    {
+      "from": "C2-4",
+      "to": "C3-5",
+      "weight": 17.0,
+      "directed": false
+    },
+    {
+      "from": "C2-5",
+      "to": "RegHub-26",
+      "weight": 9.3,
+      "directed": false
+    },
+    {
+      "from": "C2-5",
+      "to": "C3-5",
+      "weight": 11.7,
+      "directed": false
+    },
+    {
+      "from": "RegHub-26",
+      "to": "C2-7",
+      "weight": 13.2,
+      "directed": false
+    },
+    {
+      "from": "RegHub-26",
+      "to": "C3-6",
+      "weight": 11.7,
+      "directed": false
+    },
+    {
+      "from": "RegHub-26",
+      "to": "C3-7",
+      "weight": 11.0,
+      "directed": false
+    },
+    {
+      "from": "C2-7",
+      "to": "RegHub-28",
+      "weight": 17.1,
+      "directed": false
+    },
+    {
+      "from": "C2-7",
+      "to": "C3-7",
+      "weight": 11.7,
+      "directed": false
+    },
+    {
+      "from": "RegHub-28",
+      "to": "C2-9",
+      "weight": 10.6,
+      "directed": false
+    },
+    {
+      "from": "RegHub-28",
+      "to": "C3-8",
+      "weight": 11.7,
+      "directed": false
+    },
+    {
+      "from": "RegHub-28",
+      "to": "C3-9",
+      "weight": 14.0,
+      "directed": false
+    },
+    {
+      "from": "C2-9",
+      "to": "C2-10",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C2-9",
+      "to": "C3-9",
+      "weight": 11.7,
+      "directed": false
+    },
+    {
+      "from": "C2-10",
+      "to": "C3-10",
+      "weight": 11.7,
+      "directed": false
+    },
+    {
+      "from": "Depot",
+      "to": "C3-2",
+      "weight": 10.6,
+      "directed": false
+    },
+    {
+      "from": "Depot",
+      "to": "C4-1",
+      "weight": 15.9,
+      "directed": false
+    },
+    {
+      "from": "Depot",
+      "to": "C4-2",
+      "weight": 14.0,
+      "directed": false
+    },
+    {
+      "from": "C3-2",
+      "to": "C3-3",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C3-2",
+      "to": "C4-2",
+      "weight": 15.9,
+      "directed": false
+    },
+    {
+      "from": "C3-3",
+      "to": "C3-4",
+      "weight": 8.0,
+      "directed": false
+    },
+    {
+      "from": "C3-3",
+      "to": "C4-3",
+      "weight": 15.9,
+      "directed": false
+    },
+    {
+      "from": "C3-3",
+      "to": "C4-4",
+      "weight": 17.0,
+      "directed": false
+    },
+    {
+      "from": "C3-4",
+      "to": "C3-5",
+      "weight": 11.9,
+      "directed": false
+    },
+    {
+      "from": "C3-4",
+      "to": "C4-4",
+      "weight": 15.9,
+      "directed": false
+    },
+    {
+      "from": "C3-5",
+      "to": "C3-6",
+      "weight": 15.8,
+      "directed": false
+    },
+    {
+      "from": "C3-5",
+      "to": "C4-5",
+      "weight": 15.9,
+      "directed": false
+    },
+    {
+      "from": "C3-5",
+      "to": "C4-6",
+      "weight": 11.0,
+      "directed": false
+    },
+    {
+      "from": "C3-6",
+      "to": "C3-7",
+      "weight": 9.3,
+      "directed": false
+    },
+    {
+      "from": "C3-6",
+      "to": "C4-6",
+      "weight": 15.9,
+      "directed": false
+    },
+    {
+      "from": "C3-7",
+      "to": "C3-8",
+      "weight": 13.2,
+      "directed": false
+    },
+    {
+      "from": "C3-7",
+      "to": "C4-7",
+      "weight": 15.9,
+      "directed": false
+    },
+    {
+      "from": "C3-7",
+      "to": "C4-8",
+      "weight": 14.0,
+      "directed": false
+    },
+    {
+      "from": "C3-8",
+      "to": "C3-9",
+      "weight": 17.1,
+      "directed": false
+    },
+    {
+      "from": "C3-8",
+      "to": "C4-8",
+      "weight": 15.9,
+      "directed": false
+    },
+    {
+      "from": "C3-9",
+      "to": "C3-10",
+      "weight": 10.6,
+      "directed": false
+    },
+    {
+      "from": "C3-9",
+      "to": "C4-9",
+      "weight": 15.9,
+      "directed": false
+    },
+    {
+      "from": "C3-9",
+      "to": "Terminal",
+      "weight": 17.0,
+      "directed": false
+    },
+    {
+      "from": "C3-10",
+      "to": "Terminal",
+      "weight": 15.9,
+      "directed": false
+    },
+    {
+      "from": "C4-1",
+      "to": "C4-2",
+      "weight": 17.1,
+      "directed": false
+    },
+    {
+      "from": "C4-1",
+      "to": "C5-1",
+      "weight": 10.3,
+      "directed": false
+    },
+    {
+      "from": "C4-2",
+      "to": "C4-3",
+      "weight": 10.6,
+      "directed": false
+    },
+    {
+      "from": "C4-2",
+      "to": "C5-2",
+      "weight": 10.3,
+      "directed": false
+    },
+    {
+      "from": "C4-2",
+      "to": "RegHub-53",
+      "weight": 17.0,
+      "directed": false
+    },
+    {
+      "from": "C4-3",
+      "to": "C4-4",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C4-3",
+      "to": "RegHub-53",
+      "weight": 10.3,
+      "directed": false
+    },
+    {
+      "from": "C4-4",
+      "to": "C4-5",
+      "weight": 8.0,
+      "directed": false
+    },
+    {
+      "from": "C4-4",
+      "to": "C5-4",
+      "weight": 10.3,
+      "directed": false
+    },
+    {
+      "from": "C4-4",
+      "to": "C5-5",
+      "weight": 11.0,
+      "directed": false
+    },
+    {
+      "from": "C4-5",
+      "to": "C4-6",
+      "weight": 11.9,
+      "directed": false
+    },
+    {
+      "from": "C4-5",
+      "to": "C5-5",
+      "weight": 10.3,
+      "directed": false
+    },
+    {
+      "from": "C4-6",
+      "to": "C4-7",
+      "weight": 15.8,
+      "directed": false
+    },
+    {
+      "from": "C4-6",
+      "to": "RegHub-56",
+      "weight": 10.3,
+      "directed": false
+    },
+    {
+      "from": "C4-6",
+      "to": "C5-7",
+      "weight": 14.0,
+      "directed": false
+    },
+    {
+      "from": "C4-7",
+      "to": "C4-8",
+      "weight": 9.3,
+      "directed": false
+    },
+    {
+      "from": "C4-7",
+      "to": "C5-7",
+      "weight": 10.3,
+      "directed": false
+    },
+    {
+      "from": "C4-8",
+      "to": "C4-9",
+      "weight": 13.2,
+      "directed": false
+    },
+    {
+      "from": "C4-8",
+      "to": "RegHub-58",
+      "weight": 10.3,
+      "directed": false
+    },
+    {
+      "from": "C4-8",
+      "to": "C5-9",
+      "weight": 17.0,
+      "directed": false
+    },
+    {
+      "from": "C4-9",
+      "to": "Terminal",
+      "weight": 17.1,
+      "directed": false
+    },
+    {
+      "from": "C4-9",
+      "to": "C5-9",
+      "weight": 10.3,
+      "directed": false
+    },
+    {
+      "from": "Terminal",
+      "to": "C5-10",
+      "weight": 10.3,
+      "directed": false
+    },
+    {
+      "from": "C5-1",
+      "to": "C5-2",
+      "weight": 13.2,
+      "directed": false
+    },
+    {
+      "from": "C5-1",
+      "to": "C6-1",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C5-1",
+      "to": "C6-2",
+      "weight": 17.0,
+      "directed": false
+    },
+    {
+      "from": "C5-2",
+      "to": "RegHub-53",
+      "weight": 17.1,
+      "directed": false
+    },
+    {
+      "from": "C5-2",
+      "to": "C6-2",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "RegHub-53",
+      "to": "C5-4",
+      "weight": 10.6,
+      "directed": false
+    },
+    {
+      "from": "RegHub-53",
+      "to": "C6-3",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "RegHub-53",
+      "to": "C6-4",
+      "weight": 11.0,
+      "directed": false
+    },
+    {
+      "from": "C5-4",
+      "to": "C5-5",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C5-4",
+      "to": "C6-4",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C5-5",
+      "to": "RegHub-56",
+      "weight": 8.0,
+      "directed": false
+    },
+    {
+      "from": "C5-5",
+      "to": "C6-5",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C5-5",
+      "to": "C6-6",
+      "weight": 14.0,
+      "directed": false
+    },
+    {
+      "from": "RegHub-56",
+      "to": "C5-7",
+      "weight": 11.9,
+      "directed": false
+    },
+    {
+      "from": "RegHub-56",
+      "to": "C6-6",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C5-7",
+      "to": "RegHub-58",
+      "weight": 15.8,
+      "directed": false
+    },
+    {
+      "from": "C5-7",
+      "to": "C6-7",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C5-7",
+      "to": "C6-8",
+      "weight": 17.0,
+      "directed": false
+    },
+    {
+      "from": "RegHub-58",
+      "to": "C5-9",
+      "weight": 9.3,
+      "directed": false
+    },
+    {
+      "from": "RegHub-58",
+      "to": "C6-8",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C5-9",
+      "to": "C5-10",
+      "weight": 13.2,
+      "directed": false
+    },
+    {
+      "from": "C5-9",
+      "to": "C6-9",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C5-9",
+      "to": "C6-10",
+      "weight": 11.0,
+      "directed": false
+    },
+    {
+      "from": "C5-10",
+      "to": "C6-10",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C6-1",
+      "to": "C6-2",
+      "weight": 9.3,
+      "directed": false
+    },
+    {
+      "from": "C6-2",
+      "to": "C6-3",
+      "weight": 13.2,
+      "directed": false
+    },
+    {
+      "from": "C6-3",
+      "to": "C6-4",
+      "weight": 17.1,
+      "directed": false
+    },
+    {
+      "from": "C6-4",
+      "to": "C6-5",
+      "weight": 10.6,
+      "directed": false
+    },
+    {
+      "from": "C6-5",
+      "to": "C6-6",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "C6-6",
+      "to": "C6-7",
+      "weight": 8.0,
+      "directed": false
+    },
+    {
+      "from": "C6-7",
+      "to": "C6-8",
+      "weight": 11.9,
+      "directed": false
+    },
+    {
+      "from": "C6-8",
+      "to": "C6-9",
+      "weight": 15.8,
+      "directed": false
+    },
+    {
+      "from": "C6-9",
+      "to": "C6-10",
+      "weight": 9.3,
+      "directed": false
+    }
+  ],
+  "vehicles": [
+    {
+      "id": "Freight-1",
+      "capacity": 220.0,
+      "speed": 70.0,
+      "fuel_rate": 0.18,
+      "home_depot": "Depot"
+    },
+    {
+      "id": "Freight-2",
+      "capacity": 220.0,
+      "speed": 70.0,
+      "fuel_rate": 0.18,
+      "home_depot": "Depot"
+    },
+    {
+      "id": "Freight-3",
+      "capacity": 250.0,
+      "speed": 65.0,
+      "fuel_rate": 0.2,
+      "home_depot": "Depot"
+    },
+    {
+      "id": "Freight-4",
+      "capacity": 250.0,
+      "speed": 65.0,
+      "fuel_rate": 0.2,
+      "home_depot": "Depot"
+    },
+    {
+      "id": "Freight-5",
+      "capacity": 300.0,
+      "speed": 60.0,
+      "fuel_rate": 0.22,
+      "home_depot": "Depot"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "J1",
+      "pickup": "C1-2",
+      "dropoff": "C6-9",
+      "weight": 35.0,
+      "deadline": 2.0
+    },
+    {
+      "id": "J2",
+      "pickup": "C6-2",
+      "dropoff": "C1-9",
+      "weight": 40.0,
+      "deadline": 2.3
+    },
+    {
+      "id": "J3",
+      "pickup": "C1-3",
+      "dropoff": "C6-8",
+      "weight": 30.0,
+      "deadline": 2.6
+    },
+    {
+      "id": "J4",
+      "pickup": "C6-3",
+      "dropoff": "C1-8",
+      "weight": 35.0,
+      "deadline": 2.9
+    },
+    {
+      "id": "J5",
+      "pickup": "C2-2",
+      "dropoff": "C5-9",
+      "weight": 45.0,
+      "deadline": 3.2
+    },
+    {
+      "id": "J6",
+      "pickup": "C5-2",
+      "dropoff": "C2-9",
+      "weight": 30.0,
+      "deadline": 3.5
+    },
+    {
+      "id": "J7",
+      "pickup": "C1-5",
+      "dropoff": "C6-6",
+      "weight": 50.0,
+      "deadline": 3.8
+    },
+    {
+      "id": "J8",
+      "pickup": "C6-4",
+      "dropoff": "C1-7",
+      "weight": 40.0,
+      "deadline": 4.1
+    },
+    {
+      "id": "J9",
+      "pickup": "C2-4",
+      "dropoff": "C5-7",
+      "weight": 35.0,
+      "deadline": 4.4
+    },
+    {
+      "id": "J10",
+      "pickup": "C5-4",
+      "dropoff": "C2-7",
+      "weight": 38.0,
+      "deadline": 4.7
+    },
+    {
+      "id": "J11",
+      "pickup": "C3-3",
+      "dropoff": "C4-8",
+      "weight": 42.0,
+      "deadline": 5.0
+    },
+    {
+      "id": "J12",
+      "pickup": "C4-3",
+      "dropoff": "C3-8",
+      "weight": 44.0,
+      "deadline": 5.3
+    },
+    {
+      "id": "J13",
+      "pickup": "C1-10",
+      "dropoff": "C6-10",
+      "weight": 40.0,
+      "deadline": 5.6
+    },
+    {
+      "id": "J14",
+      "pickup": "C3-5",
+      "dropoff": "C4-6",
+      "weight": 36.0,
+      "deadline": 6.0
+    }
+  ]
+}

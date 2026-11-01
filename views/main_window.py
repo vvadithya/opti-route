@@ -343,11 +343,11 @@ if HAS_PYQT:
             self.alg_combo = QComboBox(alg_group)
             self.alg_combo.setMinimumHeight(28)
             self.alg_combo.addItems([
-                "Dijkstra Shortest Path",
-                "Simulated Annealing (VRP/TSP)",
-                "Bellman-Ford Shortest Path",
+                "Simulated Annealing (VRP Optimizer)",
                 "TLBO (Teaching-Learning VRP)",
                 "Genetic Algorithm (GA VRP)",
+                "Dijkstra (Unoptimized FIFO Baseline)",
+                "Bellman-Ford (Unoptimized FIFO Baseline)",
             ])
             self.alg_combo.currentIndexChanged.connect(self._on_algorithm_changed)
             alg_layout.addWidget(self.alg_combo)
@@ -412,7 +412,7 @@ if HAS_PYQT:
             params_layout.addWidget(self.mutation_combo, 4, 1)
 
             layout.addWidget(self.params_group)
-            self.params_group.setVisible(False)  # Hidden when Dijkstra is selected
+            self.params_group.setVisible(True)  # Visible by default for Simulated Annealing (index 0)
 
             # 4. Execution Action Buttons (SRS U1 Basic & Alternative Flow)
             exec_row = QHBoxLayout()
@@ -691,7 +691,7 @@ if HAS_PYQT:
 
         def _on_algorithm_changed(self, index: int) -> None:
             """Show or hide meta-heuristic hyper-parameter controls based on selected algorithm."""
-            is_meta = index in (1, 3, 4)
+            is_meta = index in (0, 1, 2)
             self.params_group.setVisible(is_meta)
 
         def _populate_sample_networks(self) -> None:
@@ -708,6 +708,8 @@ if HAS_PYQT:
                 "sample_06_industrial_corridor.json": "🗺️ Sample 6: Regional Industrial Corridor",
                 "sample_07_campus_micro_transit.json": "🗺️ Sample 7: Smart Campus Micro-Transit",
                 "sample_08_multi_depot_metropolis.json": "🗺️ Sample 8: Multi-Depot Metropolis Ring",
+                "sample_09_mega_metropolis_45nodes.json": "🗺️ Sample 9: Mega-Metropolis (45 Nodes)",
+                "sample_10_national_freight_60nodes.json": "🗺️ Sample 10: National Freight Grid (60 Nodes)",
             }
             if data_dir.exists():
                 json_files = sorted(
@@ -993,15 +995,37 @@ if HAS_PYQT:
             alg_idx = self.alg_combo.currentIndex()
 
             try:
-                if alg_idx == 0:
-                    result = self.controller.run_dijkstra(start_node=start_n, end_node=target_n)
-                elif alg_idx == 2:
-                    result = self.controller.run_bellman_ford(start_node=start_n, end_node=target_n)
+                # Extract waypoints from active job queue if available so all algorithms evaluate the same workload
+                waypoints: Optional[List[str]] = None
+                jq = getattr(self.controller, "job_queue", None)
+                if jq is not None and not isinstance(jq, str):
+                    all_jobs_fn = getattr(jq, "all_jobs", None)
+                    if callable(all_jobs_fn):
+                        seen_wp = set()
+                        job_wps: List[str] = []
+                        for job in all_jobs_fn():
+                            for loc in (getattr(job, "pickup", None), getattr(job, "dropoff", None)):
+                                if (
+                                    loc
+                                    and self.controller.graph.has_node(loc)
+                                    and loc not in (start_n, target_n)
+                                    and loc not in seen_wp
+                                ):
+                                    job_wps.append(loc)
+                                    seen_wp.add(loc)
+                        if job_wps:
+                            waypoints = job_wps
+
+                if alg_idx == 3:
+                    result = self.controller.run_dijkstra(
+                        start_node=start_n, end_node=target_n, waypoints=waypoints or []
+                    )
+                elif alg_idx == 4:
+                    result = self.controller.run_bellman_ford(
+                        start_node=start_n, end_node=target_n, waypoints=waypoints or []
+                    )
                 else:
-                    # Extract waypoints from active job queue if available; otherwise visit all intermediate nodes
-                    waypoints = None
-                    jq = getattr(self.controller, "job_queue", None)
-                    if jq is None or not hasattr(jq, "__len__") or len(jq) == 0:
+                    if not waypoints:
                         waypoints = [nid for nid in self.controller.graph.nodes.keys() if nid not in (start_n, target_n)]
 
                     common_kwargs = dict(
@@ -1014,9 +1038,9 @@ if HAS_PYQT:
                         iterations_per_temp=self.iter_spin.value(),
                         mutation_operator=self.mutation_combo.currentText(),
                     )
-                    if alg_idx == 1:
+                    if alg_idx == 0:
                         result = self.controller.run_simulated_annealing(**common_kwargs)
-                    elif alg_idx == 3:
+                    elif alg_idx == 1:
                         result = self.controller.run_tlbo(**common_kwargs)
                     else:
                         result = self.controller.run_genetic_algorithm(**common_kwargs)
@@ -1068,7 +1092,12 @@ if HAS_PYQT:
                 runs = self.controller.get_benchmark_results()
                 self.comp_table.setRowCount(len(runs))
                 for r_idx, bench in enumerate(runs):
-                    alg_item = QTableWidgetItem(bench.algorithm_name)
+                    display_alg = (
+                        f"{bench.algorithm_name} (FIFO)"
+                        if bench.algorithm_name in ("Dijkstra", "BellmanFord")
+                        else bench.algorithm_name
+                    )
+                    alg_item = QTableWidgetItem(display_alg)
                     cost_str = f"{bench.total_solution_cost:.2f}" if bench.total_solution_cost is not None else "—"
                     time_str = f"{bench.execution_time_ms:.2f}"
                     mem_str = f"{bench.peak_traced_memory_mb:.4f}" if bench.peak_traced_memory_mb is not None else "—"

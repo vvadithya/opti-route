@@ -69,6 +69,69 @@ class BellmanFordSolver(BaseSolver):
             raise ValueError(f"End node '{end_node}' not found in RoadGraph.")
 
         steps = kwargs.get("steps_per_edge", self.steps_per_edge)
+        raw_waypoints = kwargs.get("waypoints") or []
+        valid_waypoints = [w for w in raw_waypoints if graph.has_node(w) and w not in (start_node, end_node)]
+
+        if valid_waypoints:
+            seq = [start_node] + valid_waypoints + [end_node]
+            full_path: List[str] = []
+            total_cost = 0.0
+            total_visited = 0
+            total_passes = 0
+            total_relaxed = 0
+            for i in range(len(seq) - 1):
+                seg_res = self.solve(
+                    graph,
+                    start_node=seq[i],
+                    end_node=seq[i + 1],
+                    steps_per_edge=steps,
+                )
+                total_visited += seg_res.nodes_visited
+                total_passes += seg_res.telemetry.get("relaxation_passes", 0)
+                total_relaxed += seg_res.telemetry.get("edges_relaxed", 0)
+                if not seg_res.found:
+                    elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+                    self.set_state(SolverState.COMPLETED)
+                    return RouteResult(
+                        path=[],
+                        total_cost=float("inf"),
+                        total_distance=float("inf"),
+                        trajectory=[],
+                        nodes_visited=total_visited,
+                        execution_time_ms=elapsed_ms,
+                        algorithm_name=self.name,
+                        found=False,
+                        telemetry={"relaxation_passes": total_passes, "edges_relaxed": total_relaxed},
+                    )
+                total_cost += seg_res.total_cost
+                if not full_path:
+                    full_path.extend(seg_res.path)
+                else:
+                    full_path.extend(seg_res.path[1:])
+
+            trajectory = self.generate_trajectory(graph, full_path, steps)
+            elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+            routes_map: Dict[str, List[str]] = {}
+            fleet_vehicles = getattr(fleet, "vehicles", None) if fleet is not None else None
+            if fleet_vehicles and len(fleet_vehicles) > 0:
+                routes_map[fleet_vehicles[0].id] = list(full_path)
+            else:
+                routes_map["Vehicle-1"] = list(full_path)
+
+            self.notify_progress(100.0, "Completed Sequential Bellman-Ford search")
+            self.set_state(SolverState.COMPLETED)
+            return RouteResult(
+                path=full_path,
+                routes=routes_map,
+                total_cost=total_cost,
+                total_distance=total_cost,
+                trajectory=trajectory,
+                nodes_visited=total_visited,
+                execution_time_ms=elapsed_ms,
+                algorithm_name=self.name,
+                found=True,
+                telemetry={"relaxation_passes": total_passes, "edges_relaxed": total_relaxed},
+            )
 
         if start_node == end_node:
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0

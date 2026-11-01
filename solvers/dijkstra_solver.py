@@ -69,6 +69,88 @@ class DijkstraSolver(BaseSolver):
             raise ValueError(f"End node '{end_node}' not found in RoadGraph.")
 
         steps = kwargs.get("steps_per_edge", self.steps_per_edge)
+        raw_waypoints = kwargs.get("waypoints") or []
+        valid_waypoints = [w for w in raw_waypoints if graph.has_node(w) and w not in (start_node, end_node)]
+
+        if valid_waypoints:
+            seq = [start_node] + valid_waypoints + [end_node]
+            full_path: List[str] = []
+            total_cost = 0.0
+            total_visited = 0
+            adj = {nid: graph.get_neighbors(nid) for nid in graph.nodes}
+
+            for i in range(len(seq) - 1):
+                u_start, u_end = seq[i], seq[i + 1]
+                if u_start == u_end:
+                    if not full_path:
+                        full_path.append(u_start)
+                    continue
+                pq_seg: List[Tuple[float, str]] = [(0.0, u_start)]
+                dists_seg: Dict[str, float] = {u_start: 0.0}
+                prev_seg: Dict[str, Optional[str]] = {u_start: None}
+                vis_seg: Set[str] = set()
+                while pq_seg:
+                    c_u, curr_u = heapq.heappop(pq_seg)
+                    if curr_u in vis_seg:
+                        continue
+                    vis_seg.add(curr_u)
+                    total_visited += 1
+                    if curr_u == u_end:
+                        break
+                    for nb, w in adj.get(curr_u, ()):
+                        if nb not in vis_seg:
+                            nc = c_u + w
+                            if nc < dists_seg.get(nb, float("inf")):
+                                dists_seg[nb] = nc
+                                prev_seg[nb] = curr_u
+                                heapq.heappush(pq_seg, (nc, nb))
+                if u_end not in dists_seg:
+                    elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+                    self.set_state(SolverState.COMPLETED)
+                    return RouteResult(
+                        path=[],
+                        total_cost=float("inf"),
+                        total_distance=float("inf"),
+                        trajectory=[],
+                        nodes_visited=total_visited,
+                        execution_time_ms=elapsed_ms,
+                        algorithm_name=self.name,
+                        found=False,
+                    )
+                total_cost += dists_seg[u_end]
+                seg_p: List[str] = []
+                cur_n: Optional[str] = u_end
+                while cur_n is not None:
+                    seg_p.append(cur_n)
+                    cur_n = prev_seg.get(cur_n)
+                seg_p.reverse()
+                if not full_path:
+                    full_path.extend(seg_p)
+                else:
+                    full_path.extend(seg_p[1:])
+
+            trajectory = self.generate_trajectory(graph, full_path, steps)
+            elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+            routes_map: Dict[str, List[str]] = {}
+            fleet_vehicles = getattr(fleet, "vehicles", None) if fleet is not None else None
+            if fleet_vehicles and len(fleet_vehicles) > 0:
+                routes_map[fleet_vehicles[0].id] = list(full_path)
+            else:
+                routes_map["Vehicle-1"] = list(full_path)
+
+            self.notify_progress(100.0, "Completed Sequential Dijkstra search")
+            self.set_state(SolverState.COMPLETED)
+            return RouteResult(
+                path=full_path,
+                routes=routes_map,
+                total_cost=total_cost,
+                total_distance=total_cost,
+                trajectory=trajectory,
+                nodes_visited=total_visited,
+                execution_time_ms=elapsed_ms,
+                algorithm_name=self.name,
+                found=True,
+            )
 
         # Special case: Start is destination
         if start_node == end_node:

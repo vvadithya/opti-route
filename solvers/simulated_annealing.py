@@ -19,54 +19,98 @@ class SAResult(RouteResult):
     peak_memory_mb: float = 0.0
 
 
+class _LazyPathMatrix(dict):
+    """Reconstructs shortest-path node sequences on demand from cached integer predecessor arrays."""
+
+    def __init__(self, idx_to_node: List[str], node_to_idx: Dict[str, int], prev_arrays: Dict[str, List[int]]):
+        super().__init__()
+        self._idx_to_node = idx_to_node
+        self._node_to_idx = node_to_idx
+        self._prev_arrays = prev_arrays
+
+    def get(self, key: Tuple[str, str], default: Any = None) -> Any:
+        if key in self:
+            return super().get(key, default)
+        src, dst = key
+        prev = self._prev_arrays.get(src)
+        dst_idx = self._node_to_idx.get(dst, -1)
+        if prev is None or dst_idx < 0 or (src != dst and prev[dst_idx] == -1):
+            self[key] = []
+            return []
+        p: List[str] = []
+        curr = dst_idx
+        idx_to_node = self._idx_to_node
+        while curr != -1:
+            p.append(idx_to_node[curr])
+            curr = prev[curr]
+        p.reverse()
+        self[key] = p
+        return p
+
+
 def precompute_shortest_paths(
     graph: RoadGraph, source_nodes: Iterable[str]
 ) -> Tuple[Dict[Tuple[str, str], float], Dict[Tuple[str, str], List[str]]]:
     """
-    Fast single-source Dijkstra precomputation for a set of waypoint nodes without
-    allocating intermediate RouteResult objects or interpolating trajectories.
+    Ultra-fast integer-indexed single-source Dijkstra precomputation for a set of waypoint nodes,
+    minimizing Python dictionary allocations and tracemalloc overhead on large graphs.
     """
     dist_matrix: Dict[Tuple[str, str], float] = {}
-    path_matrix: Dict[Tuple[str, str], List[str]] = {}
-    unique_sources = list(dict.fromkeys(source_nodes))
+    unique_sources = [s for s in dict.fromkeys(source_nodes) if graph.has_node(s)]
+    if not unique_sources:
+        return dist_matrix, {}
 
-    for src in unique_sources:
-        if not graph.has_node(src):
-            continue
-        pq: List[Tuple[float, str]] = [(0.0, src)]
-        dists: Dict[str, float] = {src: 0.0}
-        prev: Dict[str, Optional[str]] = {src: None}
-        visited = set()
+    idx_to_node = list(graph.nodes.keys())
+    node_to_idx = {nid: i for i, nid in enumerate(idx_to_node)}
+    num_v = len(idx_to_node)
+    inf = float("inf")
+
+    # Build integer-indexed adjacency table once
+    adj_int: List[List[Tuple[int, float]]] = [
+        [(node_to_idx[v], float(w)) for v, w in graph.get_neighbors(nid) if v in node_to_idx]
+        for nid in idx_to_node
+    ]
+
+    src_indices = [(s, node_to_idx[s]) for s in unique_sources]
+    target_flags = [False] * num_v
+    for _, s_idx in src_indices:
+        target_flags[s_idx] = True
+    total_targets = len(src_indices)
+
+    prev_arrays: Dict[str, List[int]] = {}
+    heappop = heapq.heappop
+    heappush = heapq.heappush
+
+    for src_str, src_idx in src_indices:
+        dists = [inf] * num_v
+        prev = [-1] * num_v
+        visited = [False] * num_v
+        dists[src_idx] = 0.0
+        pq: List[Tuple[float, int]] = [(0.0, src_idx)]
+        rem = total_targets
 
         while pq:
-            cost_u, u = heapq.heappop(pq)
-            if u in visited:
+            cost_u, u = heappop(pq)
+            if visited[u]:
                 continue
-            visited.add(u)
-            for v, w in graph.get_neighbors(u):
-                if v in visited:
-                    continue
-                nd = cost_u + w
-                if nd < dists.get(v, float("inf")):
-                    dists[v] = nd
-                    prev[v] = u
-                    heapq.heappush(pq, (nd, v))
+            visited[u] = True
+            if target_flags[u]:
+                rem -= 1
+                if rem == 0:
+                    break
+            for v, w in adj_int[u]:
+                if not visited[v]:
+                    nd = cost_u + w
+                    if nd < dists[v]:
+                        dists[v] = nd
+                        prev[v] = u
+                        heappush(pq, (nd, v))
 
-        for dst in unique_sources:
-            if dst in dists:
-                dist_matrix[(src, dst)] = dists[dst]
-                p: List[str] = []
-                curr: Optional[str] = dst
-                while curr is not None:
-                    p.append(curr)
-                    curr = prev.get(curr)
-                p.reverse()
-                path_matrix[(src, dst)] = p
-            else:
-                dist_matrix[(src, dst)] = float("inf")
-                path_matrix[(src, dst)] = []
+        prev_arrays[src_str] = prev
+        for dst_str, dst_idx in src_indices:
+            dist_matrix[(src_str, dst_str)] = dists[dst_idx]
 
-    return dist_matrix, path_matrix
+    return dist_matrix, _LazyPathMatrix(idx_to_node, node_to_idx, prev_arrays)
 
 
 def nearest_neighbor_sequence(
@@ -89,20 +133,34 @@ def nearest_neighbor_sequence(
         curr = best_next
     tour.append(end_node)
 
-    # Fast deterministic 2-opt local search polish on intermediate waypoints
+    # Fast O(n^2) deterministic 2-opt local search polish on intermediate waypoints
     n = len(tour)
     if n > 3:
-        improved = True
-        while improved:
+        best_c = sum(dist_matrix.get((tour[k], tour[k + 1]), float("inf")) for k in range(n - 1))
+        for _pass in range(2):
             improved = False
             for i in range(1, n - 2):
+                u_prev, u_curr = tour[i - 1], tour[i]
+                d_before_i = dist_matrix.get((u_prev, u_curr), float("inf"))
                 for j in range(i + 1, n - 1):
-                    candidate = tour[:i] + list(reversed(tour[i : j + 1])) + tour[j + 1 :]
-                    old_c = sum(dist_matrix.get((tour[k], tour[k + 1]), float("inf")) for k in range(n - 1))
-                    new_c = sum(dist_matrix.get((candidate[k], candidate[k + 1]), float("inf")) for k in range(n - 1))
-                    if new_c < old_c - 1e-9:
-                        tour = candidate
-                        improved = True
+                    v_curr, v_next = tour[j], tour[j + 1]
+                    # Quick lower-bound filter for symmetric/near-symmetric road networks
+                    d_old_edges = d_before_i + dist_matrix.get((v_curr, v_next), float("inf"))
+                    d_new_edges = (
+                        dist_matrix.get((u_prev, v_curr), float("inf"))
+                        + dist_matrix.get((u_curr, v_next), float("inf"))
+                    )
+                    if d_new_edges < d_old_edges - 1e-9:
+                        candidate = tour[:i] + tour[i : j + 1][::-1] + tour[j + 1 :]
+                        new_c = sum(dist_matrix.get((candidate[k], candidate[k + 1]), float("inf")) for k in range(n - 1))
+                        if new_c < best_c - 1e-9:
+                            tour = candidate
+                            best_c = new_c
+                            u_curr = tour[i]
+                            d_before_i = dist_matrix.get((u_prev, u_curr), float("inf"))
+                            improved = True
+            if not improved:
+                break
     return tour
 
 
