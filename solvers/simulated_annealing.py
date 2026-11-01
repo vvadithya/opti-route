@@ -143,6 +143,8 @@ class SimulatedAnnealingSolver(BaseSolver):
                 end_node = getattr(job_queue, "end_node", None)
             if end_node is None:
                 end_node = kwargs.get("end_node")
+            if end_node is None and start_node is not None:
+                end_node = start_node
 
         if not start_node or not graph.has_node(start_node):
             self.set_state(SolverState.FAILED)
@@ -151,7 +153,22 @@ class SimulatedAnnealingSolver(BaseSolver):
             self.set_state(SolverState.FAILED)
             raise ValueError(f"End node '{end_node}' not found in graph.")
 
-        waypoints: List[str] = kwargs.get("waypoints", [])
+        waypoints: List[str] = list(kwargs.get("waypoints", []))
+
+        # Extract waypoints from DynamicJobQueue if none were explicitly provided
+        jobs_list: List[Any] = []
+        if job_queue is not None and not isinstance(job_queue, str):
+            all_jobs_fn = getattr(job_queue, "all_jobs", None)
+            if callable(all_jobs_fn):
+                jobs_list = list(all_jobs_fn())
+
+        if not waypoints and jobs_list:
+            seen_wp = set()
+            for job in jobs_list:
+                for loc in (getattr(job, "pickup", None), getattr(job, "dropoff", None)):
+                    if loc and graph.has_node(loc) and loc not in (start_node, end_node) and loc not in seen_wp:
+                        waypoints.append(loc)
+                        seen_wp.add(loc)
 
         # Construct initial node sequence: start_node -> waypoints -> end_node
         valid_waypoints = [w for w in waypoints if graph.has_node(w) and w not in (start_node, end_node)]
@@ -199,8 +216,12 @@ class SimulatedAnnealingSolver(BaseSolver):
 
         # Core SA Execution Loop
         while temp > min_temp:
+            if self.state == SolverState.STOPPED:
+                break
             temp_step += 1
             for _ in range(k_iters):
+                if self.state == SolverState.STOPPED:
+                    break
                 iteration_count += 1
 
                 # Generate neighbor solution using dynamic mutation operator strategy
@@ -237,13 +258,60 @@ class SimulatedAnnealingSolver(BaseSolver):
                     full_path.extend(seg_res.path[1:])  # avoid duplicate node join
                 full_trajectory.extend(seg_res.trajectory)
 
+        # Build per-vehicle routes and capacity/job telemetry if fleet/jobs exist
+        routes_map: Dict[str, List[str]] = {}
+        telemetry_data: Dict[str, Any] = {}
+        fleet_vehicles = getattr(fleet, "vehicles", None) if fleet is not None else None
+
+        if fleet_vehicles and len(fleet_vehicles) > 0:
+            intermediate = best_solution[1:-1]
+            num_vehicles = min(len(fleet_vehicles), max(1, len(intermediate)))
+            vehicle_Loads: Dict[str, float] = {}
+            vehicle_fuel: Dict[str, float] = {}
+            vehicle_hours: Dict[str, float] = {}
+
+            # Partition intermediate stops across fleet vehicles
+            for v_idx in range(num_vehicles):
+                veh = fleet_vehicles[v_idx]
+                chunk = intermediate[v_idx::num_vehicles]
+                v_seq = [veh.home_depot if graph.has_node(veh.home_depot) else start_node] + chunk + [end_node]
+                v_full_path: List[str] = []
+                for s_i in range(len(v_seq) - 1):
+                    s_res = self.dijkstra.solve(graph, start_node=v_seq[s_i], end_node=v_seq[s_i + 1])
+                    if s_res.found:
+                        if not v_full_path:
+                            v_full_path.extend(s_res.path)
+                        else:
+                            v_full_path.extend(s_res.path[1:])
+                routes_map[veh.id] = v_full_path if v_full_path else v_seq
+                v_dist = self.calculate_route_cost(graph, v_seq, dist_matrix)
+                if math.isfinite(v_dist):
+                    vehicle_fuel[veh.id] = round(veh.fuel_used(v_dist), 3)
+                    vehicle_hours[veh.id] = round(veh.travel_time_hours(v_dist), 3)
+
+            if jobs_list:
+                for j_idx, job in enumerate(jobs_list):
+                    veh = fleet_vehicles[j_idx % num_vehicles]
+                    vehicle_Loads[veh.id] = vehicle_Loads.get(veh.id, 0.0) + getattr(job, "weight", 0.0)
+
+            telemetry_data = {
+                "vehicle_loads": vehicle_Loads,
+                "vehicle_fuel": vehicle_fuel,
+                "vehicle_travel_hours": vehicle_hours,
+                "jobs_routed": len(jobs_list),
+            }
+        else:
+            routes_map["Vehicle-1"] = full_path if full_path else best_solution
+
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 
-        self.notify_progress(100.0, "Completed Simulated Annealing search")
-        self.set_state(SolverState.COMPLETED)
+        if self.state != SolverState.STOPPED:
+            self.notify_progress(100.0, "Completed Simulated Annealing search")
+            self.set_state(SolverState.COMPLETED)
 
         return SAResult(
             path=full_path if full_path else best_solution,
+            routes=routes_map,
             total_cost=best_cost,
             total_distance=best_cost,
             trajectory=full_trajectory,
@@ -253,4 +321,5 @@ class SimulatedAnnealingSolver(BaseSolver):
             found=not math.isinf(best_cost),
             convergence_history=convergence_history,
             temperature_steps=temp_step,
+            telemetry=telemetry_data,
         )

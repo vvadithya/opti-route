@@ -54,6 +54,10 @@ class DijkstraSolver(BaseSolver):
                 end_node = job_queue
             elif job_queue is not None:
                 end_node = getattr(job_queue, "end_node", None)
+                if end_node is None and callable(getattr(job_queue, "peek", None)):
+                    first_job = job_queue.peek()
+                    if first_job is not None:
+                        end_node = getattr(first_job, "dropoff", None)
             if end_node is None:
                 end_node = kwargs.get("end_node")
 
@@ -143,10 +147,18 @@ class DijkstraSolver(BaseSolver):
         trajectory = self.generate_trajectory(graph, path, steps)
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 
+        routes_map: Dict[str, List[str]] = {}
+        fleet_vehicles = getattr(fleet, "vehicles", None) if fleet is not None else None
+        if fleet_vehicles and len(fleet_vehicles) > 0:
+            routes_map[fleet_vehicles[0].id] = list(path)
+        else:
+            routes_map["Vehicle-1"] = list(path)
+
         self.notify_progress(100.0, "Completed Dijkstra search")
         self.set_state(SolverState.COMPLETED)
         return RouteResult(
             path=path,
+            routes=routes_map,
             total_cost=total_cost,
             total_distance=total_cost,
             trajectory=trajectory,

@@ -20,6 +20,7 @@ from PyQt6.QtGui import (
     QBrush,
     QColor,
     QFont,
+    QMouseEvent,
     QPainter,
     QPainterPath,
     QPen,
@@ -41,7 +42,7 @@ from .theme_manager import ThemeManager, ThemeMode
 
 
 class NodeGraphicsItem(QGraphicsEllipseItem):
-    """Interactive visual representation of a RoadGraph Node."""
+    """Interactive visual representation of a RoadGraph Node (draggable and selectable)."""
 
     def __init__(
         self,
@@ -51,12 +52,15 @@ class NodeGraphicsItem(QGraphicsEllipseItem):
         y: float,
         radius: float = 14.0,
         is_depot: bool = False,
+        canvas: Optional["MapCanvas"] = None,
     ):
         super().__init__(-radius, -radius, radius * 2, radius * 2)
         self.setPos(x, y)
         self.setZValue(10)
         self.setAcceptHoverEvents(True)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
 
         self.node_id = node_id
         self.node_name = name
@@ -65,9 +69,28 @@ class NodeGraphicsItem(QGraphicsEllipseItem):
         self.radius = radius
         self.is_depot = is_depot
         self.label_item: Optional[QGraphicsSimpleTextItem] = None
+        self._canvas = canvas
 
-        disp_name = f" ({name})" if name else ""
-        self.setToolTip(f"Node: {node_id}{disp_name}\nCoordinates: ({x:.1f}, {y:.1f})")
+        self._update_tooltip()
+
+    def _update_tooltip(self) -> None:
+        disp_name = f" ({self.node_name})" if self.node_name else ""
+        self.setToolTip(f"Node: {self.node_id}{disp_name}\nCoordinates: ({self.world_x:.1f}, {self.world_y:.1f})")
+
+    def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value):
+        if change == QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged and self._canvas is not None:
+            new_pos = self.pos()
+            self.world_x = float(new_pos.x())
+            self.world_y = float(new_pos.y())
+            self._update_tooltip()
+            if self.label_item is not None:
+                label_rect = self.label_item.boundingRect()
+                self.label_item.setPos(
+                    self.world_x - label_rect.width() / 2.0,
+                    self.world_y + self.radius + 2,
+                )
+            self._canvas._on_node_dragged(self.node_id, self.world_x, self.world_y)
+        return super().itemChange(change, value)
 
 
 class MapCanvas(QGraphicsView):
@@ -102,9 +125,11 @@ class MapCanvas(QGraphicsView):
         # Tracked visual items
         self._node_items: Dict[str, NodeGraphicsItem] = {}
         self._edge_items: List[QGraphicsLineItem] = []
+        self._edge_pairs: List[Tuple[str, str]] = []
         self._label_items: List[QGraphicsSimpleTextItem] = []
         self._route_items: List[QGraphicsPathItem] = []
         self._vehicle_item: Optional[QGraphicsEllipseItem] = None
+        self._suppress_drag_sync: bool = False
 
         # Zoom limits
         self._current_zoom = 1.0
@@ -174,6 +199,7 @@ class MapCanvas(QGraphicsView):
 
         self._node_items.clear()
         self._edge_items.clear()
+        self._edge_pairs.clear()
         self._label_items.clear()
         self._route_items.clear()
         self._vehicle_item = None
@@ -208,6 +234,7 @@ class MapCanvas(QGraphicsView):
                 assert line_item is not None  # stub: addLine -> QGraphicsLineItem | None
                 line_item.setZValue(2)
                 self._edge_items.append(line_item)
+                self._edge_pairs.append((u_id, v_id))
 
                 # Edge weight label at midpoint
                 mid_x = (u_node.x + v_node.x) / 2.0
@@ -220,39 +247,76 @@ class MapCanvas(QGraphicsView):
                 self._label_items.append(weight_text)
 
         # 2. Render Nodes
-        for n_id, node in graph.nodes.items():
-            is_depot = "depot" in n_id.lower() or "depot" in (node.name or "").lower()
-            radius = 16.0 if is_depot else 13.0
+        self._suppress_drag_sync = True
+        try:
+            for n_id, node in graph.nodes.items():
+                is_depot = (
+                    bool(getattr(node, "is_depot", False))
+                    or "depot" in n_id.lower()
+                    or "depot" in (node.name or "").lower()
+                )
+                radius = 16.0 if is_depot else 13.0
 
-            node_item = NodeGraphicsItem(
-                node_id=n_id,
-                name=node.name,
-                x=node.x,
-                y=node.y,
-                radius=radius,
-                is_depot=is_depot,
-            )
+                node_item = NodeGraphicsItem(
+                    node_id=n_id,
+                    name=node.name,
+                    x=node.x,
+                    y=node.y,
+                    radius=radius,
+                    is_depot=is_depot,
+                    canvas=self,
+                )
 
-            fill_color = QColor(p["depot_fill"] if is_depot else p["node_fill"])
-            stroke_color = QColor(p["depot_stroke"] if is_depot else p["node_stroke"])
-            node_item.setBrush(QBrush(fill_color))
-            node_item.setPen(QPen(stroke_color, 2.0))
+                fill_color = QColor(p["depot_fill"] if is_depot else p["node_fill"])
+                stroke_color = QColor(p["depot_stroke"] if is_depot else p["node_stroke"])
+                node_item.setBrush(QBrush(fill_color))
+                node_item.setPen(QPen(stroke_color, 2.0))
 
-            self._scene.addItem(node_item)
-            self._node_items[n_id] = node_item
+                self._scene.addItem(node_item)
+                self._node_items[n_id] = node_item
 
-            # Node Label text
-            label_text = self._scene.addSimpleText(n_id, font_node)
-            assert label_text is not None  # stub: addSimpleText -> QGraphicsSimpleTextItem | None
-            label_text.setBrush(QBrush(QColor(p["text_primary"])))
-            # Center label beneath node
-            label_rect = label_text.boundingRect()
-            label_text.setPos(node.x - label_rect.width() / 2.0, node.y + radius + 2)
-            label_text.setZValue(12)
-            node_item.label_item = label_text
+                # Node Label text
+                label_text = self._scene.addSimpleText(n_id, font_node)
+                assert label_text is not None  # stub: addSimpleText -> QGraphicsSimpleTextItem | None
+                label_text.setBrush(QBrush(QColor(p["text_primary"])))
+                # Center label beneath node
+                label_rect = label_text.boundingRect()
+                label_text.setPos(node.x - label_rect.width() / 2.0, node.y + radius + 2)
+                label_text.setZValue(12)
+                node_item.label_item = label_text
+        finally:
+            self._suppress_drag_sync = False
 
         # Fit all elements within initial viewport
         self.fit_to_view()
+
+    def _on_node_dragged(self, node_id: str, new_x: float, new_y: float) -> None:
+        """Update underlying RoadGraph coordinates and redraw connected road lines when dragged (SRS F2)."""
+        if self._suppress_drag_sync or self._graph_ref is None:
+            return
+        move_fn = getattr(self._graph_ref, "move_node", None)
+        if callable(move_fn):
+            try:
+                move_fn(node_id, new_x, new_y)
+            except Exception:
+                pass
+        else:
+            node = self._graph_ref.get_node(node_id)
+            if node is not None:
+                node.x = new_x
+                node.y = new_y
+
+        for idx, (u_id, v_id) in enumerate(self._edge_pairs):
+            if node_id not in (u_id, v_id):
+                continue
+            u_node = self._graph_ref.get_node(u_id)
+            v_node = self._graph_ref.get_node(v_id)
+            if u_node and v_node and idx < len(self._edge_items):
+                self._edge_items[idx].setLine(u_node.x, u_node.y, v_node.x, v_node.y)
+                if idx < len(self._label_items):
+                    mid_x = (u_node.x + v_node.x) / 2.0
+                    mid_y = (u_node.y + v_node.y) / 2.0
+                    self._label_items[idx].setPos(mid_x + 3, mid_y + 3)
 
     # -------------------------------------------------------------------------
     # Route Overlays (SRS F9)
@@ -313,6 +377,49 @@ class MapCanvas(QGraphicsView):
         assert path_item is not None  # stub: addPath -> QGraphicsPathItem | None
         path_item.setZValue(5)
         self._route_items.append(path_item)
+
+    def draw_multi_routes(self, routes: Dict[str, List[str]]) -> None:
+        """Render color-coded route overlays for multiple vehicles on the canvas (SRS F9)."""
+        if self._graph_ref is None or not routes:
+            return
+        self.clear_routes()
+        palette_colors = ["#10B981", "#00E5FF", "#F59E0B", "#A855F7", "#F43F5E"]
+        for idx, (veh_id, r_path) in enumerate(routes.items()):
+            if not r_path or len(r_path) < 2:
+                continue
+            first_node = self._graph_ref.get_node(r_path[0])
+            if not first_node:
+                continue
+            painter_path = QPainterPath()
+            painter_path.moveTo(first_node.x, first_node.y)
+            for nid in r_path[1:]:
+                node = self._graph_ref.get_node(nid)
+                if node:
+                    painter_path.lineTo(node.x, node.y)
+            color_hex = palette_colors[idx % len(palette_colors)]
+            pen = QPen(
+                QColor(color_hex),
+                4.0,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+                Qt.PenJoinStyle.RoundJoin,
+            )
+            path_item = self._scene.addPath(painter_path, pen)
+            if path_item is not None:
+                path_item.setZValue(5 + idx * 0.1)
+                path_item.setToolTip(f"Vehicle: {veh_id} | Route: {' -> '.join(r_path)}")
+                self._route_items.append(path_item)
+
+    def mousePressEvent(self, event: Optional[QMouseEvent]) -> None:
+        """Emit node_selected or canvas_clicked signals on mouse press (SRS F2)."""
+        if event is not None:
+            scene_pt = self.mapToScene(event.pos())
+            item = self._scene.itemAt(scene_pt, self.transform())
+            if isinstance(item, NodeGraphicsItem):
+                self.node_selected.emit(item.node_id)
+            else:
+                self.canvas_clicked.emit(float(scene_pt.x()), float(scene_pt.y()))
+        super().mousePressEvent(event)
 
     # -------------------------------------------------------------------------
     # Vehicle Traversal Sprite (SRS F10)

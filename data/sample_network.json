@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "distance_unit": "km",
+  "nodes": [
+    {
+      "id": "Depot",
+      "x": 100.0,
+      "y": 250.0,
+      "name": "Central Logistics Hub",
+      "type": "depot"
+    },
+    {
+      "id": "Hub-North",
+      "x": 280.0,
+      "y": 100.0,
+      "name": "North Transit Facility",
+      "type": "hub"
+    },
+    {
+      "id": "Hub-South",
+      "x": 300.0,
+      "y": 420.0,
+      "name": "South Distribution Depot",
+      "type": "hub"
+    },
+    {
+      "id": "Cust-A",
+      "x": 480.0,
+      "y": 80.0,
+      "name": "Metro Retailer A",
+      "type": "junction"
+    },
+    {
+      "id": "Cust-B",
+      "x": 520.0,
+      "y": 220.0,
+      "name": "Commercial Center B",
+      "type": "junction"
+    },
+    {
+      "id": "Cust-C",
+      "x": 490.0,
+      "y": 360.0,
+      "name": "Industrial Park C",
+      "type": "junction"
+    },
+    {
+      "id": "Cust-D",
+      "x": 700.0,
+      "y": 150.0,
+      "name": "Regional Warehouse D",
+      "type": "junction"
+    },
+    {
+      "id": "Cust-E",
+      "x": 680.0,
+      "y": 380.0,
+      "name": "Suburban Outlet E",
+      "type": "junction"
+    },
+    {
+      "id": "Terminal",
+      "x": 850.0,
+      "y": 260.0,
+      "name": "Port Terminal",
+      "type": "hub"
+    }
+  ],
+  "edges": [
+    {
+      "from": "Depot",
+      "to": "Hub-North",
+      "weight": 12.5,
+      "directed": false
+    },
+    {
+      "from": "Depot",
+      "to": "Hub-South",
+      "weight": 14.0,
+      "directed": false
+    },
+    {
+      "from": "Hub-North",
+      "to": "Cust-A",
+      "weight": 15.2,
+      "directed": false
+    },
+    {
+      "from": "Hub-North",
+      "to": "Cust-B",
+      "weight": 11.0,
+      "directed": false
+    },
+    {
+      "from": "Hub-South",
+      "to": "Cust-B",
+      "weight": 13.4,
+      "directed": false
+    },
+    {
+      "from": "Hub-South",
+      "to": "Cust-C",
+      "weight": 12.0,
+      "directed": false
+    },
+    {
+      "from": "Cust-A",
+      "to": "Cust-D",
+      "weight": 16.8,
+      "directed": false
+    },
+    {
+      "from": "Cust-B",
+      "to": "Cust-D",
+      "weight": 14.5,
+      "directed": false
+    },
+    {
+      "from": "Cust-B",
+      "to": "Cust-C",
+      "weight": 10.2,
+      "directed": false
+    },
+    {
+      "from": "Cust-C",
+      "to": "Cust-E",
+      "weight": 13.0,
+      "directed": false
+    },
+    {
+      "from": "Cust-D",
+      "to": "Terminal",
+      "weight": 15.0,
+      "directed": false
+    },
+    {
+      "from": "Cust-E",
+      "to": "Terminal",
+      "weight": 14.2,
+      "directed": false
+    },
+    {
+      "from": "Cust-D",
+      "to": "Cust-E",
+      "weight": 18.0,
+      "directed": false
+    }
+  ],
+  "vehicles": [
+    {
+      "id": "V1",
+      "capacity": 80.0,
+      "speed": 60.0,
+      "fuel_rate": 0.12,
+      "home_depot": "Depot"
+    },
+    {
+      "id": "V2",
+      "capacity": 100.0,
+      "speed": 55.0,
+      "fuel_rate": 0.15,
+      "home_depot": "Depot"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "J1",
+      "pickup": "Hub-North",
+      "dropoff": "Cust-A",
+      "weight": 25.0,
+      "deadline": 2.5
+    },
+    {
+      "id": "J2",
+      "pickup": "Hub-North",
+      "dropoff": "Cust-D",
+      "weight": 35.0,
+      "deadline": 3.5
+    },
+    {
+      "id": "J3",
+      "pickup": "Hub-South",
+      "dropoff": "Cust-C",
+      "weight": 30.0,
+      "deadline": 3.0
+    },
+    {
+      "id": "J4",
+      "pickup": "Cust-B",
+      "dropoff": "Cust-E",
+      "weight": 20.0,
+      "deadline": 4.5
+    },
+    {
+      "id": "J5",
+      "pickup": "Cust-D",
+      "dropoff": "Terminal",
+      "weight": 40.0,
+      "deadline": 5.0
+    }
+  ]
+}

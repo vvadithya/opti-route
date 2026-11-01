@@ -15,7 +15,84 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:  # pragma: no cover - lightweight fallback when numpy is unavailable
+    class _MatrixFlags:
+        def __init__(self) -> None:
+            self.writeable: bool = True
+
+    class _FallbackRow:
+        def __init__(self, data: List[float], flags: _MatrixFlags) -> None:
+            self._data = data
+            self._flags = flags
+
+        def __getitem__(self, idx: int) -> float:
+            return self._data[idx]
+
+        def __setitem__(self, idx: int, value: float) -> None:
+            if not self._flags.writeable:
+                raise ValueError("assignment destination is read-only")
+            self._data[idx] = float(value)
+
+        def __len__(self) -> int:
+            return len(self._data)
+
+        def __iter__(self):
+            return iter(self._data)
+
+        def __eq__(self, other: object) -> bool:
+            if isinstance(other, list):
+                return self._data == other
+            if isinstance(other, _FallbackRow):
+                return self._data == other._data
+            return False
+
+    class _FallbackNDArray:
+        def __init__(self, shape: Tuple[int, int], fill_value: float = 0.0) -> None:
+            rows, cols = shape
+            self.shape: Tuple[int, int] = (rows, cols)
+            self.flags = _MatrixFlags()
+            self._grid: List[List[float]] = [
+                [float(fill_value) for _ in range(cols)] for _ in range(rows)
+            ]
+
+        def __getitem__(self, key: Any) -> Any:
+            if isinstance(key, tuple):
+                r, c = key
+                return self._grid[r][c]
+            return _FallbackRow(self._grid[key], self.flags)
+
+        def __setitem__(self, key: Any, value: float) -> None:
+            if not self.flags.writeable:
+                raise ValueError("assignment destination is read-only")
+            if isinstance(key, tuple):
+                r, c = key
+                self._grid[r][c] = float(value)
+            else:
+                self._grid[key] = [float(v) for v in value]
+
+        def __len__(self) -> int:
+            return self.shape[0]
+
+        def tolist(self) -> List[List[float]]:
+            return [list(row) for row in self._grid]
+
+    class _FallbackNumpy:
+        ndarray = _FallbackNDArray
+        inf = math.inf
+
+        @staticmethod
+        def full(shape: Tuple[int, int], fill_value: float) -> _FallbackNDArray:
+            return _FallbackNDArray(shape, fill_value)
+
+        @staticmethod
+        def fill_diagonal(matrix: _FallbackNDArray, val: float) -> None:
+            n = min(matrix.shape[0], matrix.shape[1])
+            for idx in range(n):
+                matrix[idx, idx] = float(val)
+
+    np = _FallbackNumpy()  # type: ignore
 
 
 class NodeType(str, Enum):
