@@ -157,7 +157,59 @@ class TestCrossPhaseIntegration(unittest.TestCase):
         # Toggle Theme
         win.on_toggle_theme()
         self.assertEqual(tm.current_mode, ThemeMode.LIGHT)
+
+        # Test Bellman-Ford, TLBO, and Genetic Algorithm from GUI
+        win.alg_combo.setCurrentIndex(2)  # Bellman-Ford
+        win.on_run_solver()
+        self.assertEqual(win.comp_table.rowCount(), 3)
+
+        win.alg_combo.setCurrentIndex(3)  # TLBO
+        win.on_run_solver()
+        self.assertEqual(win.comp_table.rowCount(), 4)
+
+        win.alg_combo.setCurrentIndex(4)  # Genetic Algorithm
+        win.on_run_solver()
+        self.assertEqual(win.comp_table.rowCount(), 5)
+
+        # Test switching preset sample networks via toolbar selector
+        self.assertGreaterEqual(win.sample_combo.count(), 9)
+        win.sample_combo.setCurrentIndex(1)
+        self.assertGreaterEqual(win.controller.graph.node_count(), 8)
         win.close()
+
+    def test_all_nine_sample_networks_and_five_algorithms(self) -> None:
+        """Verify all 9 sample networks in data/ load cleanly and all 5 algorithms solve them rapidly."""
+        data_dir = self.repo_root / "data"
+        json_files = sorted(data_dir.glob("*.json"))
+        self.assertGreaterEqual(len(json_files), 9)
+
+        controller = OptiRouteController()
+        for jf in json_files:
+            proj = controller.load_project(jf)
+            self.assertGreaterEqual(proj.graph.node_count(), 8, f"{jf.name} should have >= 8 nodes")
+            self.assertGreaterEqual(proj.graph.edge_count(), 12, f"{jf.name} should have >= 12 edges")
+            self.assertGreaterEqual(len(proj.fleet), 2, f"{jf.name} should have >= 2 vehicles")
+            self.assertGreaterEqual(len(proj.jobs), 4, f"{jf.name} should have >= 4 jobs")
+
+        # Load default sample_network.json and compare all 5 algorithms
+        controller.load_project(self.sample_json)
+        res_dijk = controller.run_dijkstra("Depot", "Terminal")
+        res_bf = controller.run_bellman_ford("Depot", "Terminal")
+        self.assertTrue(res_dijk.found)
+        self.assertTrue(res_bf.found)
+        self.assertAlmostEqual(res_dijk.total_cost, res_bf.total_cost, places=5)
+        self.assertEqual(res_dijk.path, res_bf.path)
+
+        res_sa = controller.run_simulated_annealing("Depot", "Terminal", seed=42)
+        res_tlbo = controller.run_tlbo("Depot", "Terminal", seed=42)
+        res_ga = controller.run_genetic_algorithm("Depot", "Terminal", seed=42)
+
+        for res in (res_sa, res_tlbo, res_ga):
+            self.assertTrue(res.found)
+            self.assertGreater(len(res.convergence_history), 1)
+            self.assertIn("V1", res.routes)
+            self.assertIn("V2", res.routes)
+            self.assertLess(res.execution_time_ms, 50.0)
 
 
 if __name__ == "__main__":

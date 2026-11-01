@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "distance_unit": "km",
+  "nodes": [
+    {"id": "Depot", "x": 100.0, "y": 260.0, "name": "Fulfillment Mega-Center", "type": "depot"},
+    {"id": "MicroHub-NW", "x": 260.0, "y": 90.0, "name": "Northwest Locker Hub", "type": "hub"},
+    {"id": "MicroHub-SW", "x": 260.0, "y": 420.0, "name": "Southwest Locker Hub", "type": "hub"},
+    {"id": "Zone-1", "x": 380.0, "y": 170.0, "name": "Oakwood Residential", "type": "junction"},
+    {"id": "Zone-2", "x": 390.0, "y": 330.0, "name": "Maple Heights", "type": "junction"},
+    {"id": "MicroHub-C", "x": 500.0, "y": 250.0, "name": "Central Parcel Exchange", "type": "hub"},
+    {"id": "Zone-3", "x": 510.0, "y": 90.0, "name": "Tech Park North", "type": "junction"},
+    {"id": "Zone-4", "x": 520.0, "y": 430.0, "name": "Riverside Condos", "type": "junction"},
+    {"id": "Zone-5", "x": 650.0, "y": 150.0, "name": "Hillcrest Villas", "type": "junction"},
+    {"id": "Zone-6", "x": 660.0, "y": 340.0, "name": "Sunset Commons", "type": "junction"},
+    {"id": "MicroHub-NE", "x": 770.0, "y": 80.0, "name": "Northeast Drop Station", "type": "hub"},
+    {"id": "MicroHub-SE", "x": 780.0, "y": 430.0, "name": "Southeast Drop Station", "type": "hub"},
+    {"id": "Zone-7", "x": 820.0, "y": 210.0, "name": "Lakeside Estates", "type": "junction"},
+    {"id": "Terminal", "x": 900.0, "y": 300.0, "name": "East Return Depot", "type": "hub"}
+  ],
+  "edges": [
+    {"from": "Depot", "to": "MicroHub-NW", "weight": 8.4, "directed": false},
+    {"from": "Depot", "to": "Zone-1", "weight": 9.2, "directed": false},
+    {"from": "Depot", "to": "Zone-2", "weight": 9.5, "directed": false},
+    {"from": "Depot", "to": "MicroHub-SW", "weight": 8.8, "directed": false},
+    {"from": "MicroHub-NW", "to": "Zone-1", "weight": 5.4, "directed": false},
+    {"from": "MicroHub-NW", "to": "Zone-3", "weight": 7.8, "directed": false},
+    {"from": "MicroHub-SW", "to": "Zone-2", "weight": 5.6, "directed": false},
+    {"from": "MicroHub-SW", "to": "Zone-4", "weight": 8.1, "directed": false},
+    {"from": "Zone-1", "to": "MicroHub-C", "weight": 5.2, "directed": false},
+    {"from": "Zone-2", "to": "MicroHub-C", "weight": 5.1, "directed": false},
+    {"from": "Zone-3", "to": "MicroHub-C", "weight": 5.8, "directed": false},
+    {"from": "Zone-4", "to": "MicroHub-C", "weight": 6.0, "directed": false},
+    {"from": "Zone-3", "to": "Zone-5", "weight": 5.5, "directed": false},
+    {"from": "MicroHub-C", "to": "Zone-5", "weight": 6.1, "directed": false},
+    {"from": "MicroHub-C", "to": "Zone-6", "weight": 6.3, "directed": false},
+    {"from": "Zone-4", "to": "Zone-6", "weight": 5.9, "directed": false},
+    {"from": "Zone-5", "to": "MicroHub-NE", "weight": 5.0, "directed": false},
+    {"from": "Zone-5", "to": "Zone-7", "weight": 5.7, "directed": false},
+    {"from": "Zone-6", "to": "MicroHub-SE", "weight": 5.3, "directed": false},
+    {"from": "Zone-6", "to": "Terminal", "weight": 7.6, "directed": false},
+    {"from": "MicroHub-NE", "to": "Zone-7", "weight": 4.9, "directed": false},
+    {"from": "Zone-7", "to": "Terminal", "weight": 4.8, "directed": false}
+  ],
+  "vehicles": [
+    {"id": "EV-Van1", "capacity": 60.0, "speed": 55.0, "fuel_rate": 0.08, "home_depot": "Depot"},
+    {"id": "EV-Van2", "capacity": 60.0, "speed": 55.0, "fuel_rate": 0.08, "home_depot": "Depot"},
+    {"id": "EV-Van3", "capacity": 75.0, "speed": 50.0, "fuel_rate": 0.09, "home_depot": "Depot"}
+  ],
+  "jobs": [
+    {"id": "J1", "pickup": "MicroHub-NW", "dropoff": "Zone-1", "weight": 12.0, "deadline": 1.5},
+    {"id": "J2", "pickup": "MicroHub-SW", "dropoff": "Zone-2", "weight": 15.0, "deadline": 1.8},
+    {"id": "J3", "pickup": "MicroHub-C", "dropoff": "Zone-3", "weight": 18.0, "deadline": 2.2},
+    {"id": "J4", "pickup": "MicroHub-C", "dropoff": "Zone-4", "weight": 14.0, "deadline": 2.5},
+    {"id": "J5", "pickup": "Zone-5", "dropoff": "MicroHub-NE", "weight": 20.0, "deadline": 3.0},
+    {"id": "J6", "pickup": "Zone-6", "dropoff": "MicroHub-SE", "weight": 16.0, "deadline": 3.4},
+    {"id": "J7", "pickup": "Zone-7", "dropoff": "Terminal", "weight": 22.0, "deadline": 4.0}
+  ]
+}

@@ -4,7 +4,10 @@ from typing import Any, Dict, Optional, Type
 from ..models.graph import RoadGraph
 from .base_solver import AlgorithmStrategy, OptimizationResult, RouteResult
 from .dijkstra_solver import DijkstraSolver
+from .bellman_ford_solver import BellmanFordSolver
 from .simulated_annealing import SimulatedAnnealingSolver, SAResult
+from .tlbo_solver import TLBOSolver, TLBOResult
+from .genetic_algorithm import GeneticAlgorithmSolver, GAResult
 
 
 class SolverOrchestrator:
@@ -17,8 +20,13 @@ class SolverOrchestrator:
     def __init__(self):
         self._solvers: Dict[str, Type[AlgorithmStrategy]] = {
             "dijkstra": DijkstraSolver,
+            "bellman_ford": BellmanFordSolver,
+            "bf": BellmanFordSolver,
             "simulated_annealing": SimulatedAnnealingSolver,
             "sa": SimulatedAnnealingSolver,
+            "tlbo": TLBOSolver,
+            "genetic_algorithm": GeneticAlgorithmSolver,
+            "ga": GeneticAlgorithmSolver,
         }
 
     def register_solver(self, name: str, solver_cls: Type[AlgorithmStrategy]) -> None:
@@ -43,7 +51,30 @@ class SolverOrchestrator:
                 if k in ("initial_temp", "cooling_rate", "min_temp", "iterations_per_temp", "mutation_operator", "seed")
             }
             return solver_cls(**init_args)
-        elif issubclass(solver_cls, DijkstraSolver):
+        elif issubclass(solver_cls, TLBOSolver):
+            init_args = {
+                k: v
+                for k, v in kwargs.items()
+                if k in ("population_size", "num_generations", "mutation_operator", "seed")
+            }
+            return solver_cls(**init_args)
+        elif issubclass(solver_cls, GeneticAlgorithmSolver):
+            init_args = {
+                k: v
+                for k, v in kwargs.items()
+                if k in (
+                    "population_size",
+                    "generations",
+                    "crossover_rate",
+                    "mutation_rate",
+                    "elite_size",
+                    "tournament_size",
+                    "mutation_operator",
+                    "seed",
+                )
+            }
+            return solver_cls(**init_args)
+        elif issubclass(solver_cls, (DijkstraSolver, BellmanFordSolver)):
             init_args = {k: v for k, v in kwargs.items() if k in ("steps_per_edge",)}
             return solver_cls(**init_args)
 

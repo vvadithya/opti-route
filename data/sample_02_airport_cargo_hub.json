@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "distance_unit": "km",
+  "nodes": [
+    {"id": "Depot", "x": 450.0, "y": 260.0, "name": "Air Cargo Central Ramp", "type": "depot"},
+    {"id": "Hangar-W", "x": 200.0, "y": 140.0, "name": "West Freight Hangar", "type": "hub"},
+    {"id": "Customs-N", "x": 440.0, "y": 80.0, "name": "North Customs Clearance", "type": "hub"},
+    {"id": "Concourse-E", "x": 700.0, "y": 130.0, "name": "East Cargo Concourse", "type": "hub"},
+    {"id": "ColdStore", "x": 160.0, "y": 330.0, "name": "Perishables Cold Vault", "type": "junction"},
+    {"id": "Sort-A", "x": 330.0, "y": 420.0, "name": "Express Sort Facility A", "type": "junction"},
+    {"id": "Sort-B", "x": 580.0, "y": 420.0, "name": "Express Sort Facility B", "type": "junction"},
+    {"id": "FuelFarm", "x": 750.0, "y": 310.0, "name": "Aviation Logistics Gate", "type": "junction"},
+    {"id": "Highway-W", "x": 80.0, "y": 220.0, "name": "West Interstate Interchange", "type": "junction"},
+    {"id": "Terminal", "x": 860.0, "y": 220.0, "name": "International Freight Terminal", "type": "hub"}
+  ],
+  "edges": [
+    {"from": "Depot", "to": "Hangar-W", "weight": 11.2, "directed": false},
+    {"from": "Depot", "to": "Customs-N", "weight": 8.4, "directed": false},
+    {"from": "Depot", "to": "Concourse-E", "weight": 11.8, "directed": false},
+    {"from": "Depot", "to": "Sort-A", "weight": 9.2, "directed": false},
+    {"from": "Depot", "to": "Sort-B", "weight": 9.5, "directed": false},
+    {"from": "Hangar-W", "to": "Highway-W", "weight": 7.4, "directed": false},
+    {"from": "Hangar-W", "to": "Customs-N", "weight": 10.6, "directed": false},
+    {"from": "Hangar-W", "to": "ColdStore", "weight": 8.1, "directed": false},
+    {"from": "Highway-W", "to": "ColdStore", "weight": 6.8, "directed": false},
+    {"from": "ColdStore", "to": "Sort-A", "weight": 8.9, "directed": false},
+    {"from": "Customs-N", "to": "Concourse-E", "weight": 11.0, "directed": false},
+    {"from": "Sort-A", "to": "Sort-B", "weight": 10.0, "directed": false},
+    {"from": "Concourse-E", "to": "FuelFarm", "weight": 8.3, "directed": false},
+    {"from": "Concourse-E", "to": "Terminal", "weight": 9.1, "directed": false},
+    {"from": "Sort-B", "to": "FuelFarm", "weight": 8.7, "directed": false},
+    {"from": "FuelFarm", "to": "Terminal", "weight": 7.5, "directed": false}
+  ],
+  "vehicles": [
+    {"id": "Cargo-1", "capacity": 150.0, "speed": 70.0, "fuel_rate": 0.16, "home_depot": "Depot"},
+    {"id": "Cargo-2", "capacity": 180.0, "speed": 65.0, "fuel_rate": 0.18, "home_depot": "Depot"}
+  ],
+  "jobs": [
+    {"id": "J1", "pickup": "Customs-N", "dropoff": "Hangar-W", "weight": 45.0, "deadline": 1.8},
+    {"id": "J2", "pickup": "Hangar-W", "dropoff": "ColdStore", "weight": 35.0, "deadline": 2.2},
+    {"id": "J3", "pickup": "Sort-A", "dropoff": "Concourse-E", "weight": 50.0, "deadline": 3.0},
+    {"id": "J4", "pickup": "Sort-B", "dropoff": "FuelFarm", "weight": 40.0, "deadline": 3.4},
+    {"id": "J5", "pickup": "Concourse-E", "dropoff": "Terminal", "weight": 60.0, "deadline": 4.0}
+  ]
+}

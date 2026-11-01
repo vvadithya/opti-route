@@ -276,6 +276,12 @@ class OptiRouteController:
         """Pipeline hook for executing Dijkstra's shortest path algorithm."""
         return self.run_solver("dijkstra", start_node=start_node, end_node=end_node, **kwargs)
 
+    def run_bellman_ford(
+        self, start_node: str, end_node: str, **kwargs
+    ) -> OptimizationResult:
+        """Pipeline hook for executing Bellman-Ford shortest path algorithm."""
+        return self.run_solver("bellman_ford", start_node=start_node, end_node=end_node, **kwargs)
+
     def run_simulated_annealing(
         self,
         start_node: str,
@@ -289,6 +295,30 @@ class OptiRouteController:
         return self.run_solver(
             "simulated_annealing", start_node=start_node, end_node=end_node, **kwargs
         )
+
+    def run_tlbo(
+        self,
+        start_node: str,
+        end_node: str,
+        waypoints: Optional[List[str]] = None,
+        **kwargs,
+    ) -> OptimizationResult:
+        """Pipeline hook for executing Teaching-Learning-Based Optimization (TLBO) VRP solver."""
+        if waypoints is not None:
+            kwargs["waypoints"] = waypoints
+        return self.run_solver("tlbo", start_node=start_node, end_node=end_node, **kwargs)
+
+    def run_genetic_algorithm(
+        self,
+        start_node: str,
+        end_node: str,
+        waypoints: Optional[List[str]] = None,
+        **kwargs,
+    ) -> OptimizationResult:
+        """Pipeline hook for executing Genetic Algorithm (GA) VRP solver."""
+        if waypoints is not None:
+            kwargs["waypoints"] = waypoints
+        return self.run_solver("genetic_algorithm", start_node=start_node, end_node=end_node, **kwargs)
 
     def pause_execution(self) -> None:
         """Pause active solver execution if supported."""

@@ -1,8 +1,9 @@
+import heapq
 import math
 import random
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from ..models.graph import RoadGraph
 from .base_solver import BaseSolver, OptimizationResult, RouteResult, SolverState
 from .dijkstra_solver import DijkstraSolver
@@ -11,26 +12,191 @@ from .mutation_operators import apply_mutation, MutationOperatorType
 
 @dataclass
 class SAResult(RouteResult):
-    """Extended RouteResult with Simulated Annealing telemetry data."""
+    """Extended RouteResult with Simulated Annealing / Meta-heuristic telemetry data."""
 
     convergence_history: List[Tuple[int, float, float]] = field(default_factory=list)  # (iteration, temp, cost)
     temperature_steps: int = 0
     peak_memory_mb: float = 0.0
 
 
+def precompute_shortest_paths(
+    graph: RoadGraph, source_nodes: Iterable[str]
+) -> Tuple[Dict[Tuple[str, str], float], Dict[Tuple[str, str], List[str]]]:
+    """
+    Fast single-source Dijkstra precomputation for a set of waypoint nodes without
+    allocating intermediate RouteResult objects or interpolating trajectories.
+    """
+    dist_matrix: Dict[Tuple[str, str], float] = {}
+    path_matrix: Dict[Tuple[str, str], List[str]] = {}
+    unique_sources = list(dict.fromkeys(source_nodes))
+
+    for src in unique_sources:
+        if not graph.has_node(src):
+            continue
+        pq: List[Tuple[float, str]] = [(0.0, src)]
+        dists: Dict[str, float] = {src: 0.0}
+        prev: Dict[str, Optional[str]] = {src: None}
+        visited = set()
+
+        while pq:
+            cost_u, u = heapq.heappop(pq)
+            if u in visited:
+                continue
+            visited.add(u)
+            for v, w in graph.get_neighbors(u):
+                if v in visited:
+                    continue
+                nd = cost_u + w
+                if nd < dists.get(v, float("inf")):
+                    dists[v] = nd
+                    prev[v] = u
+                    heapq.heappush(pq, (nd, v))
+
+        for dst in unique_sources:
+            if dst in dists:
+                dist_matrix[(src, dst)] = dists[dst]
+                p: List[str] = []
+                curr: Optional[str] = dst
+                while curr is not None:
+                    p.append(curr)
+                    curr = prev.get(curr)
+                p.reverse()
+                path_matrix[(src, dst)] = p
+            else:
+                dist_matrix[(src, dst)] = float("inf")
+                path_matrix[(src, dst)] = []
+
+    return dist_matrix, path_matrix
+
+
+def nearest_neighbor_sequence(
+    start_node: str,
+    waypoints: List[str],
+    end_node: str,
+    dist_matrix: Dict[Tuple[str, str], float],
+) -> List[str]:
+    """Construct a fast Greedy Nearest-Neighbor initial tour over waypoints polished with a 2-opt pass."""
+    remaining = list(waypoints)
+    tour = [start_node]
+    curr = start_node
+    while remaining:
+        best_next = min(
+            remaining,
+            key=lambda w: dist_matrix.get((curr, w), float("inf")),
+        )
+        tour.append(best_next)
+        remaining.remove(best_next)
+        curr = best_next
+    tour.append(end_node)
+
+    # Fast deterministic 2-opt local search polish on intermediate waypoints
+    n = len(tour)
+    if n > 3:
+        improved = True
+        while improved:
+            improved = False
+            for i in range(1, n - 2):
+                for j in range(i + 1, n - 1):
+                    candidate = tour[:i] + list(reversed(tour[i : j + 1])) + tour[j + 1 :]
+                    old_c = sum(dist_matrix.get((tour[k], tour[k + 1]), float("inf")) for k in range(n - 1))
+                    new_c = sum(dist_matrix.get((candidate[k], candidate[k + 1]), float("inf")) for k in range(n - 1))
+                    if new_c < old_c - 1e-9:
+                        tour = candidate
+                        improved = True
+    return tour
+
+
+def expand_full_route_and_fleet(
+    solver: BaseSolver,
+    graph: RoadGraph,
+    best_solution: List[str],
+    start_node: str,
+    end_node: str,
+    fleet: Optional[Any],
+    jobs_list: List[Any],
+    dist_matrix: Dict[Tuple[str, str], float],
+    path_matrix: Dict[Tuple[str, str], List[str]],
+    steps_per_edge: int = 10,
+) -> Tuple[List[str], List[Tuple[float, float]], Dict[str, List[str]], Dict[str, Any]]:
+    """Expand a sequence of waypoints into a full road-level path, trajectory, and fleet assignment."""
+    full_path: List[str] = []
+    for i in range(len(best_solution) - 1):
+        u, v = best_solution[i], best_solution[i + 1]
+        seg_path = path_matrix.get((u, v))
+        if seg_path:
+            if not full_path:
+                full_path.extend(seg_path)
+            else:
+                full_path.extend(seg_path[1:])
+
+    full_trajectory = solver.generate_trajectory(graph, full_path, steps_per_edge) if full_path else []
+
+    routes_map: Dict[str, List[str]] = {}
+    telemetry_data: Dict[str, Any] = {}
+    fleet_vehicles = getattr(fleet, "vehicles", None) if fleet is not None else None
+
+    if fleet_vehicles and len(fleet_vehicles) > 0:
+        intermediate = best_solution[1:-1]
+        num_vehicles = min(len(fleet_vehicles), max(1, len(intermediate)))
+        vehicle_loads: Dict[str, float] = {}
+        vehicle_fuel: Dict[str, float] = {}
+        vehicle_hours: Dict[str, float] = {}
+
+        for v_idx in range(num_vehicles):
+            veh = fleet_vehicles[v_idx]
+            chunk = intermediate[v_idx::num_vehicles]
+            depot_node = veh.home_depot if graph.has_node(veh.home_depot) else start_node
+            v_seq = [depot_node] + chunk + [end_node]
+            v_full_path: List[str] = []
+            v_dist = 0.0
+            for s_i in range(len(v_seq) - 1):
+                su, sv = v_seq[s_i], v_seq[s_i + 1]
+                s_path = path_matrix.get((su, sv))
+                if not s_path:
+                    sub_d, sub_p = precompute_shortest_paths(graph, [su, sv])
+                    s_path = sub_p.get((su, sv), [])
+                    dist_matrix[(su, sv)] = sub_d.get((su, sv), float("inf"))
+                if s_path:
+                    if not v_full_path:
+                        v_full_path.extend(s_path)
+                    else:
+                        v_full_path.extend(s_path[1:])
+                v_dist += dist_matrix.get((su, sv), float("inf"))
+            routes_map[veh.id] = v_full_path if v_full_path else v_seq
+            if math.isfinite(v_dist):
+                vehicle_fuel[veh.id] = round(veh.fuel_used(v_dist), 3)
+                vehicle_hours[veh.id] = round(veh.travel_time_hours(v_dist), 3)
+
+        if jobs_list:
+            for j_idx, job in enumerate(jobs_list):
+                veh = fleet_vehicles[j_idx % num_vehicles]
+                vehicle_loads[veh.id] = vehicle_loads.get(veh.id, 0.0) + getattr(job, "weight", 0.0)
+
+        telemetry_data = {
+            "vehicle_loads": vehicle_loads,
+            "vehicle_fuel": vehicle_fuel,
+            "vehicle_travel_hours": vehicle_hours,
+            "jobs_routed": len(jobs_list),
+        }
+    else:
+        routes_map["Vehicle-1"] = full_path if full_path else best_solution
+
+    return full_path, full_trajectory, routes_map, telemetry_data
+
+
 class SimulatedAnnealingSolver(BaseSolver):
     """
     Simulated Annealing (SA) Meta-Heuristic Solver for Vehicle Routing Problems (VRP) / TSP.
     Supports dynamic mutation operators (2-Opt Edge Reversal, Customer Swap, Customer Insertion),
-    geometric cooling schedules, and Metropolis acceptance criteria.
+    geometric cooling schedules, precomputed all-pairs shortest path lookups, and Metropolis acceptance.
     """
 
     def __init__(
         self,
-        initial_temp: float = 1000.0,
-        cooling_rate: float = 0.95,
-        min_temp: float = 0.01,
-        iterations_per_temp: int = 50,
+        initial_temp: float = 80.0,
+        cooling_rate: float = 0.75,
+        min_temp: float = 0.5,
+        iterations_per_temp: int = 6,
         mutation_operator: Union[str, MutationOperatorType] = MutationOperatorType.RANDOM,
         seed: Optional[int] = None,
     ):
@@ -62,11 +228,12 @@ class SimulatedAnnealingSolver(BaseSolver):
         total_cost = 0.0
         for i in range(len(node_sequence) - 1):
             u, v = node_sequence[i], node_sequence[i + 1]
-            if (u, v) not in dist_matrix:
+            cost = dist_matrix.get((u, v))
+            if cost is None:
                 res = self.dijkstra.solve(graph, start_node=u, end_node=v)
-                dist_matrix[(u, v)] = res.total_cost if res.found else float("inf")
+                cost = res.total_cost if res.found else float("inf")
+                dist_matrix[(u, v)] = cost
 
-            cost = dist_matrix[(u, v)]
             if math.isinf(cost):
                 return float("inf")
             total_cost += cost
@@ -77,10 +244,6 @@ class SimulatedAnnealingSolver(BaseSolver):
         """
         Evaluates Metropolis Acceptance Criterion:
         P = 1.0 if delta_cost < 0 else exp(-delta_cost / T)
-
-        :param delta_cost: Cost difference (new_cost - current_cost).
-        :param temperature: Current temperature T.
-        :return: True if new solution is accepted, False otherwise.
         """
         if delta_cost < 0:
             return True
@@ -91,9 +254,7 @@ class SimulatedAnnealingSolver(BaseSolver):
         return random.random() < probability
 
     def _generate_basic_neighbor(self, solution: List[str]) -> List[str]:
-        """
-        Basic neighbor generator swapping two intermediate nodes in the solution route.
-        """
+        """Basic neighbor generator swapping two intermediate nodes in the solution route."""
         if len(solution) <= 3:
             return list(solution)
 
@@ -113,14 +274,6 @@ class SimulatedAnnealingSolver(BaseSolver):
     ) -> SAResult:
         """
         Execute Simulated Annealing optimization to visit target nodes or solve path route.
-
-        :param graph: RoadGraph instance.
-        :param fleet: Optional vehicle fleet model or start_node ID string.
-        :param job_queue: Optional job queue model or end_node ID string.
-        :param start_node: Start node ID override.
-        :param end_node: End node ID override.
-        :param kwargs: Optional 'waypoints' (List[str]), hyper-parameters overrides.
-        :return: SAResult object with optimal solution, trajectory, and convergence analytics.
         """
         self.set_state(SolverState.RUNNING)
         self.notify_progress(0.0, "Starting Simulated Annealing search")
@@ -170,18 +323,17 @@ class SimulatedAnnealingSolver(BaseSolver):
                         waypoints.append(loc)
                         seen_wp.add(loc)
 
-        # Construct initial node sequence: start_node -> waypoints -> end_node
         valid_waypoints = [w for w in waypoints if graph.has_node(w) and w not in (start_node, end_node)]
         initial_sequence = [start_node] + valid_waypoints + [end_node]
 
         if len(initial_sequence) <= 2:
-            # Fallback to exact Dijkstra for simple point-to-point without waypoints
             dijkstra_res = self.dijkstra.solve(graph, start_node=start_node, end_node=end_node, **kwargs)
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
             self.notify_progress(100.0, "Completed SA via Dijkstra fallback")
             self.set_state(SolverState.COMPLETED)
             return SAResult(
                 path=dijkstra_res.path,
+                routes=dijkstra_res.routes,
                 total_cost=dijkstra_res.total_cost,
                 total_distance=dijkstra_res.total_cost,
                 trajectory=dijkstra_res.trajectory,
@@ -193,10 +345,18 @@ class SimulatedAnnealingSolver(BaseSolver):
                 temperature_steps=1,
             )
 
-        # Distance matrix cache to speed up repeated objective function calls
-        dist_matrix: Dict[Tuple[str, str], float] = {}
+        # Precompute all-pairs shortest paths once across the active node set
+        relevant_nodes = list(dict.fromkeys([start_node] + valid_waypoints + [end_node]))
+        fleet_vehicles = getattr(fleet, "vehicles", None) if fleet is not None else None
+        if fleet_vehicles:
+            for veh in fleet_vehicles:
+                if getattr(veh, "home_depot", None) and graph.has_node(veh.home_depot):
+                    if veh.home_depot not in relevant_nodes:
+                        relevant_nodes.append(veh.home_depot)
 
-        # Initial solution setup
+        dist_matrix, path_matrix = precompute_shortest_paths(graph, relevant_nodes)
+
+        # Evaluate initial sequence
         current_solution = list(initial_sequence)
         current_cost = self.calculate_route_cost(graph, current_solution, dist_matrix)
 
@@ -204,104 +364,74 @@ class SimulatedAnnealingSolver(BaseSolver):
         best_cost = current_cost
 
         # Hyper-parameters
-        temp = kwargs.get("initial_temp", self.initial_temp)
-        alpha = kwargs.get("cooling_rate", self.cooling_rate)
-        min_temp = kwargs.get("min_temp", self.min_temp)
-        k_iters = kwargs.get("iterations_per_temp", self.iterations_per_temp)
+        temp = float(kwargs.get("initial_temp", self.initial_temp))
+        alpha = float(kwargs.get("cooling_rate", self.cooling_rate))
+        min_temp = float(kwargs.get("min_temp", self.min_temp))
+        k_iters = int(kwargs.get("iterations_per_temp", self.iterations_per_temp))
         mutation_op = kwargs.get("mutation_operator", self.mutation_operator)
 
-        convergence_history: List[Tuple[int, float, float]] = []
+        convergence_history: List[Tuple[int, float, float]] = [(0, temp, best_cost)]
+
+        # Also evaluate Nearest-Neighbor tour on step 1 for rapid convergence
+        nn_solution = nearest_neighbor_sequence(start_node, valid_waypoints, end_node, dist_matrix)
+        nn_cost = self.calculate_route_cost(graph, nn_solution, dist_matrix)
+
         iteration_count = 0
         temp_step = 0
+        stagnant_temp_steps = 0
 
-        # Core SA Execution Loop
+        # Core SA Execution Loop with adaptive stagnation early-stopping
         while temp > min_temp:
             if self.state == SolverState.STOPPED:
                 break
             temp_step += 1
-            for _ in range(k_iters):
+            improved_in_step = False
+            for step_i in range(k_iters):
                 if self.state == SolverState.STOPPED:
                     break
                 iteration_count += 1
 
-                # Generate neighbor solution using dynamic mutation operator strategy
-                neighbor_solution = apply_mutation(current_solution, mutation_op)
-                neighbor_cost = self.calculate_route_cost(graph, neighbor_solution, dist_matrix)
+                if iteration_count == 1 and nn_cost < current_cost:
+                    neighbor_solution = nn_solution
+                    neighbor_cost = nn_cost
+                else:
+                    neighbor_solution = apply_mutation(current_solution, mutation_op)
+                    neighbor_cost = self.calculate_route_cost(graph, neighbor_solution, dist_matrix)
 
                 delta = neighbor_cost - current_cost
 
-                # Evaluate Metropolis Acceptance Criterion
                 if self.metropolis_criterion(delta, temp):
                     current_solution = neighbor_solution
                     current_cost = neighbor_cost
 
-                    if current_cost < best_cost:
+                    if current_cost < best_cost - 1e-9:
                         best_solution = list(current_solution)
                         best_cost = current_cost
+                        improved_in_step = True
 
                 convergence_history.append((iteration_count, temp, best_cost))
 
-            # Geometric Temperature Decay
+            if improved_in_step:
+                stagnant_temp_steps = 0
+            else:
+                stagnant_temp_steps += 1
+                if temp_step >= 5 and stagnant_temp_steps >= 5:
+                    break
+
             temp *= alpha
 
-        # Build detailed trajectory for final best route using Dijkstra segment trajectories
-        full_path: List[str] = []
-        full_trajectory: List[Tuple[float, float]] = []
-
-        for i in range(len(best_solution) - 1):
-            seg_start, seg_end = best_solution[i], best_solution[i + 1]
-            seg_res = self.dijkstra.solve(graph, start_node=seg_start, end_node=seg_end)
-            if seg_res.found:
-                if not full_path:
-                    full_path.extend(seg_res.path)
-                else:
-                    full_path.extend(seg_res.path[1:])  # avoid duplicate node join
-                full_trajectory.extend(seg_res.trajectory)
-
-        # Build per-vehicle routes and capacity/job telemetry if fleet/jobs exist
-        routes_map: Dict[str, List[str]] = {}
-        telemetry_data: Dict[str, Any] = {}
-        fleet_vehicles = getattr(fleet, "vehicles", None) if fleet is not None else None
-
-        if fleet_vehicles and len(fleet_vehicles) > 0:
-            intermediate = best_solution[1:-1]
-            num_vehicles = min(len(fleet_vehicles), max(1, len(intermediate)))
-            vehicle_Loads: Dict[str, float] = {}
-            vehicle_fuel: Dict[str, float] = {}
-            vehicle_hours: Dict[str, float] = {}
-
-            # Partition intermediate stops across fleet vehicles
-            for v_idx in range(num_vehicles):
-                veh = fleet_vehicles[v_idx]
-                chunk = intermediate[v_idx::num_vehicles]
-                v_seq = [veh.home_depot if graph.has_node(veh.home_depot) else start_node] + chunk + [end_node]
-                v_full_path: List[str] = []
-                for s_i in range(len(v_seq) - 1):
-                    s_res = self.dijkstra.solve(graph, start_node=v_seq[s_i], end_node=v_seq[s_i + 1])
-                    if s_res.found:
-                        if not v_full_path:
-                            v_full_path.extend(s_res.path)
-                        else:
-                            v_full_path.extend(s_res.path[1:])
-                routes_map[veh.id] = v_full_path if v_full_path else v_seq
-                v_dist = self.calculate_route_cost(graph, v_seq, dist_matrix)
-                if math.isfinite(v_dist):
-                    vehicle_fuel[veh.id] = round(veh.fuel_used(v_dist), 3)
-                    vehicle_hours[veh.id] = round(veh.travel_time_hours(v_dist), 3)
-
-            if jobs_list:
-                for j_idx, job in enumerate(jobs_list):
-                    veh = fleet_vehicles[j_idx % num_vehicles]
-                    vehicle_Loads[veh.id] = vehicle_Loads.get(veh.id, 0.0) + getattr(job, "weight", 0.0)
-
-            telemetry_data = {
-                "vehicle_loads": vehicle_Loads,
-                "vehicle_fuel": vehicle_fuel,
-                "vehicle_travel_hours": vehicle_hours,
-                "jobs_routed": len(jobs_list),
-            }
-        else:
-            routes_map["Vehicle-1"] = full_path if full_path else best_solution
+        full_path, full_trajectory, routes_map, telemetry_data = expand_full_route_and_fleet(
+            self,
+            graph,
+            best_solution,
+            start_node,
+            end_node,
+            fleet,
+            jobs_list,
+            dist_matrix,
+            path_matrix,
+            steps_per_edge=kwargs.get("steps_per_edge", 10),
+        )
 
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 

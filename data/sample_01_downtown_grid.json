@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "distance_unit": "km",
+  "nodes": [
+    {"id": "Depot", "x": 120.0, "y": 260.0, "name": "Midtown Dispatch Depot", "type": "depot"},
+    {"id": "Ave-1A", "x": 280.0, "y": 100.0, "name": "1st Ave North", "type": "junction"},
+    {"id": "Ave-1B", "x": 280.0, "y": 260.0, "name": "1st Ave Central", "type": "hub"},
+    {"id": "Ave-1C", "x": 280.0, "y": 420.0, "name": "1st Ave South", "type": "junction"},
+    {"id": "Ave-2A", "x": 460.0, "y": 100.0, "name": "2nd Ave North", "type": "junction"},
+    {"id": "Ave-2B", "x": 460.0, "y": 260.0, "name": "2nd Ave Central", "type": "hub"},
+    {"id": "Ave-2C", "x": 460.0, "y": 420.0, "name": "2nd Ave South", "type": "junction"},
+    {"id": "Ave-3A", "x": 640.0, "y": 100.0, "name": "3rd Ave North", "type": "junction"},
+    {"id": "Ave-3B", "x": 640.0, "y": 260.0, "name": "3rd Ave Central", "type": "hub"},
+    {"id": "Ave-3C", "x": 640.0, "y": 420.0, "name": "3rd Ave South", "type": "junction"},
+    {"id": "Uptown-Hub", "x": 820.0, "y": 160.0, "name": "Uptown Plaza Hub", "type": "hub"},
+    {"id": "Terminal", "x": 820.0, "y": 360.0, "name": "Battery Park Terminal", "type": "hub"}
+  ],
+  "edges": [
+    {"from": "Depot", "to": "Ave-1A", "weight": 9.5, "directed": false},
+    {"from": "Depot", "to": "Ave-1B", "weight": 7.0, "directed": false},
+    {"from": "Depot", "to": "Ave-1C", "weight": 9.8, "directed": false},
+    {"from": "Ave-1A", "to": "Ave-1B", "weight": 6.5, "directed": false},
+    {"from": "Ave-1B", "to": "Ave-1C", "weight": 6.5, "directed": false},
+    {"from": "Ave-1A", "to": "Ave-2A", "weight": 8.0, "directed": false},
+    {"from": "Ave-1B", "to": "Ave-2B", "weight": 7.5, "directed": false},
+    {"from": "Ave-1C", "to": "Ave-2C", "weight": 8.2, "directed": false},
+    {"from": "Ave-2A", "to": "Ave-2B", "weight": 6.0, "directed": false},
+    {"from": "Ave-2B", "to": "Ave-2C", "weight": 6.2, "directed": false},
+    {"from": "Ave-2A", "to": "Ave-3A", "weight": 8.4, "directed": false},
+    {"from": "Ave-2B", "to": "Ave-3B", "weight": 7.8, "directed": false},
+    {"from": "Ave-2C", "to": "Ave-3C", "weight": 8.0, "directed": false},
+    {"from": "Ave-3A", "to": "Ave-3B", "weight": 6.4, "directed": false},
+    {"from": "Ave-3B", "to": "Ave-3C", "weight": 6.4, "directed": false},
+    {"from": "Ave-3A", "to": "Uptown-Hub", "weight": 9.0, "directed": false},
+    {"from": "Ave-3B", "to": "Uptown-Hub", "weight": 8.5, "directed": false},
+    {"from": "Ave-3B", "to": "Terminal", "weight": 8.8, "directed": false},
+    {"from": "Ave-3C", "to": "Terminal", "weight": 8.2, "directed": false}
+  ],
+  "vehicles": [
+    {"id": "V1", "capacity": 90.0, "speed": 50.0, "fuel_rate": 0.11, "home_depot": "Depot"},
+    {"id": "V2", "capacity": 90.0, "speed": 50.0, "fuel_rate": 0.11, "home_depot": "Depot"},
+    {"id": "V3", "capacity": 120.0, "speed": 45.0, "fuel_rate": 0.14, "home_depot": "Depot"}
+  ],
+  "jobs": [
+    {"id": "J1", "pickup": "Ave-1B", "dropoff": "Ave-2A", "weight": 20.0, "deadline": 2.0},
+    {"id": "J2", "pickup": "Ave-1A", "dropoff": "Ave-3A", "weight": 30.0, "deadline": 2.5},
+    {"id": "J3", "pickup": "Ave-2B", "dropoff": "Uptown-Hub", "weight": 25.0, "deadline": 3.0},
+    {"id": "J4", "pickup": "Ave-1C", "dropoff": "Ave-3C", "weight": 35.0, "deadline": 3.5},
+    {"id": "J5", "pickup": "Ave-2C", "dropoff": "Ave-3B", "weight": 20.0, "deadline": 4.0},
+    {"id": "J6", "pickup": "Ave-3B", "dropoff": "Terminal", "weight": 40.0, "deadline": 4.5}
+  ]
+}

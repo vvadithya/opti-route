@@ -21,10 +21,10 @@ class SolverState(Enum):
 class ExecutionParams:
     """Parameter wrapper for solver configurations."""
 
-    initial_temp: float = 1000.0
-    cooling_rate: float = 0.95
-    min_temp: float = 0.01
-    iterations_per_temp: int = 50
+    initial_temp: float = 80.0
+    cooling_rate: float = 0.75
+    min_temp: float = 0.5
+    iterations_per_temp: int = 6
     mutation_operator: str = "random"
     steps_per_edge: int = 10
     seed: Optional[int] = None

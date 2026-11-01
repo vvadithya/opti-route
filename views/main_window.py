@@ -163,7 +163,7 @@ if HAS_PYQT:
                 painter.drawText(
                     rect.adjusted(14, 24, -14, -10),
                     int(Qt.AlignmentFlag.AlignCenter) | int(Qt.TextFlag.TextWordWrap),
-                    "Run Simulated Annealing to plot convergence",
+                    "Run SA, TLBO, or Genetic Algorithm to plot convergence",
                 )
                 return
 
@@ -257,7 +257,14 @@ if HAS_PYQT:
             toolbar.setMovable(False)
             self.addToolBar(toolbar)
 
-            # 1. File Import / Export Buttons (SRS F1 & Use Case U2)
+            # 1. File Import / Export Buttons & Preset Sample Network Selector (SRS F1 & Use Case U2)
+            self.sample_combo = QComboBox(self)
+            self.sample_combo.setMinimumHeight(26)
+            self.sample_combo.setMinimumWidth(210)
+            self._populate_sample_networks()
+            self.sample_combo.currentIndexChanged.connect(self.on_select_sample_network)
+            toolbar.addWidget(self.sample_combo)
+
             self.import_btn = QPushButton("📂 Import Map", self)
             self.import_btn.setObjectName("toolbar_button")
             self.import_btn.clicked.connect(self.on_import_graph)
@@ -338,6 +345,9 @@ if HAS_PYQT:
             self.alg_combo.addItems([
                 "Dijkstra Shortest Path",
                 "Simulated Annealing (VRP/TSP)",
+                "Bellman-Ford Shortest Path",
+                "TLBO (Teaching-Learning VRP)",
+                "Genetic Algorithm (GA VRP)",
             ])
             self.alg_combo.currentIndexChanged.connect(self._on_algorithm_changed)
             alg_layout.addWidget(self.alg_combo)
@@ -360,8 +370,8 @@ if HAS_PYQT:
 
             layout.addWidget(loc_group)
 
-            # 3. Parameters Group (Simulated Annealing Hyper-parameters - SRS F7, F8)
-            self.params_group = QGroupBox("SA Hyper-parameters", scroll_content)
+            # 3. Parameters Group (Simulated Annealing & Meta-Heuristic Hyper-parameters - SRS F7, F8)
+            self.params_group = QGroupBox("SA / Meta-Heuristic Params", scroll_content)
             params_layout = QGridLayout(self.params_group)
             params_layout.setVerticalSpacing(5)
 
@@ -369,7 +379,7 @@ if HAS_PYQT:
             self.init_temp_spin = QDoubleSpinBox(self.params_group)
             self.init_temp_spin.setMinimumHeight(28)
             self.init_temp_spin.setRange(1.0, 10000.0)
-            self.init_temp_spin.setValue(1000.0)
+            self.init_temp_spin.setValue(80.0)
             params_layout.addWidget(self.init_temp_spin, 0, 1)
 
             params_layout.addWidget(QLabel("Cooling Rate:"), 1, 0)
@@ -377,7 +387,7 @@ if HAS_PYQT:
             self.cooling_spin.setMinimumHeight(28)
             self.cooling_spin.setRange(0.01, 0.99)
             self.cooling_spin.setSingleStep(0.01)
-            self.cooling_spin.setValue(0.95)
+            self.cooling_spin.setValue(0.75)
             params_layout.addWidget(self.cooling_spin, 1, 1)
 
             params_layout.addWidget(QLabel("Min Temp:"), 2, 0)
@@ -385,14 +395,14 @@ if HAS_PYQT:
             self.min_temp_spin.setMinimumHeight(28)
             self.min_temp_spin.setDecimals(4)
             self.min_temp_spin.setRange(0.0001, 100.0)
-            self.min_temp_spin.setValue(0.01)
+            self.min_temp_spin.setValue(0.5)
             params_layout.addWidget(self.min_temp_spin, 2, 1)
 
             params_layout.addWidget(QLabel("Iterations:"), 3, 0)
             self.iter_spin = QSpinBox(self.params_group)
             self.iter_spin.setMinimumHeight(28)
             self.iter_spin.setRange(1, 1000)
-            self.iter_spin.setValue(50)
+            self.iter_spin.setValue(6)
             params_layout.addWidget(self.iter_spin, 3, 1)
 
             params_layout.addWidget(QLabel("Mutation Op:"), 4, 0)
@@ -590,7 +600,7 @@ if HAS_PYQT:
             layout.addWidget(self.plot_container)
 
             # 3. Comparative Evaluation Table (SRS F14)
-            comp_group = QGroupBox("Algorithm Comparison (Dijkstra vs SA)", self.analytics_frame)
+            comp_group = QGroupBox("Algorithm Comparison (All Solvers)", self.analytics_frame)
             comp_layout = QVBoxLayout(comp_group)
             comp_layout.setContentsMargins(6, 10, 6, 6)
 
@@ -680,9 +690,50 @@ if HAS_PYQT:
             self._apply_active_theme()
 
         def _on_algorithm_changed(self, index: int) -> None:
-            """Show or hide SA hyper-parameter controls based on algorithm."""
-            is_sa = (index == 1)
-            self.params_group.setVisible(is_sa)
+            """Show or hide meta-heuristic hyper-parameter controls based on selected algorithm."""
+            is_meta = index in (1, 3, 4)
+            self.params_group.setVisible(is_meta)
+
+        def _populate_sample_networks(self) -> None:
+            """Discover all sample network JSON files in the data/ directory for 1-click loading."""
+            self._sample_network_paths: List[Path] = []
+            data_dir = Path(__file__).resolve().parents[1] / "data"
+            friendly_names = {
+                "sample_network.json": "🗺️ Sample 0: Metro Distribution (Default)",
+                "sample_01_downtown_grid.json": "🗺️ Sample 1: Downtown Manhattan Grid",
+                "sample_02_airport_cargo_hub.json": "🗺️ Sample 2: Airport Express Cargo Hub",
+                "sample_03_port_container_dispatch.json": "🗺️ Sample 3: Seaport Container Dispatch",
+                "sample_04_medical_cold_chain.json": "🗺️ Sample 4: Medical Cold-Chain Emergency",
+                "sample_05_ecommerce_last_mile.json": "🗺️ Sample 5: E-Commerce Last-Mile Cluster",
+                "sample_06_industrial_corridor.json": "🗺️ Sample 6: Regional Industrial Corridor",
+                "sample_07_campus_micro_transit.json": "🗺️ Sample 7: Smart Campus Micro-Transit",
+                "sample_08_multi_depot_metropolis.json": "🗺️ Sample 8: Multi-Depot Metropolis Ring",
+            }
+            if data_dir.exists():
+                json_files = sorted(
+                    data_dir.glob("*.json"),
+                    key=lambda p: (0 if p.name == "sample_network.json" else 1, p.name),
+                )
+                for p in json_files:
+                    self._sample_network_paths.append(p)
+                    label = friendly_names.get(p.name, f"🗺️ {p.stem}")
+                    self.sample_combo.addItem(label)
+
+        def on_select_sample_network(self, index: int) -> None:
+            """Load the selected preset sample network into the controller and canvas."""
+            if not self.controller or index < 0 or index >= len(getattr(self, "_sample_network_paths", [])):
+                return
+            sample_path = self._sample_network_paths[index]
+            try:
+                project = self.controller.load_project(sample_path)
+                self.load_graph(project.graph)
+                self.map_canvas.fit_to_view()
+                self.status_bar.showMessage(
+                    f"Loaded '{sample_path.name}': {project.graph.node_count()} nodes, "
+                    f"{project.graph.edge_count()} roads, {len(project.fleet)} vehicles, {len(project.jobs)} jobs."
+                )
+            except Exception as exc:
+                QMessageBox.warning(self, "Sample Load Error", f"Failed to load sample network:\n{exc}")
 
         def _on_speed_changed(self, value: int) -> None:
             """Update speed multiplier label."""
@@ -756,10 +807,12 @@ if HAS_PYQT:
             """Import road network, fleet, and job queue from JSON or CSV file (SRS F1)."""
             if not self.controller:
                 return
+            data_dir = Path(__file__).resolve().parents[1] / "data"
+            default_dir = str(data_dir if data_dir.exists() else Path.cwd())
             file_path, _ = QFileDialog.getOpenFileName(
                 self,
                 "Import Road Network & Jobs",
-                str(Path.cwd()),
+                default_dir,
                 "Map Files (*.json *.csv);;JSON Files (*.json);;CSV Files (*.csv)",
             )
             if not file_path:
@@ -937,23 +990,36 @@ if HAS_PYQT:
             if not start_n or not target_n:
                 return
 
-            is_sa = (self.alg_combo.currentIndex() == 1)
+            alg_idx = self.alg_combo.currentIndex()
 
             try:
-                if is_sa:
-                    all_nodes = [nid for nid in self.controller.graph.nodes.keys() if nid not in (start_n, target_n)]
-                    result = self.controller.run_simulated_annealing(
+                if alg_idx == 0:
+                    result = self.controller.run_dijkstra(start_node=start_n, end_node=target_n)
+                elif alg_idx == 2:
+                    result = self.controller.run_bellman_ford(start_node=start_n, end_node=target_n)
+                else:
+                    # Extract waypoints from active job queue if available; otherwise visit all intermediate nodes
+                    waypoints = None
+                    jq = getattr(self.controller, "job_queue", None)
+                    if jq is None or not hasattr(jq, "__len__") or len(jq) == 0:
+                        waypoints = [nid for nid in self.controller.graph.nodes.keys() if nid not in (start_n, target_n)]
+
+                    common_kwargs = dict(
                         start_node=start_n,
                         end_node=target_n,
-                        waypoints=all_nodes,
+                        waypoints=waypoints,
                         initial_temp=self.init_temp_spin.value(),
                         cooling_rate=self.cooling_spin.value(),
                         min_temp=self.min_temp_spin.value(),
                         iterations_per_temp=self.iter_spin.value(),
                         mutation_operator=self.mutation_combo.currentText(),
                     )
-                else:
-                    result = self.controller.run_dijkstra(start_node=start_n, end_node=target_n)
+                    if alg_idx == 1:
+                        result = self.controller.run_simulated_annealing(**common_kwargs)
+                    elif alg_idx == 3:
+                        result = self.controller.run_tlbo(**common_kwargs)
+                    else:
+                        result = self.controller.run_genetic_algorithm(**common_kwargs)
 
                 self._handle_solver_result(result)
             except Exception as e:
